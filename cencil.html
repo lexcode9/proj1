@@ -1,0 +1,175 @@
+<html>
+<head>
+  
+  <title>Reflex Game</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      background-color: #111;
+      color: white;
+      text-align: center;
+    }
+    #gameArea {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background-color: #222;
+    }
+    #playAreaBorder {
+      position: absolute;
+      left: 10%;
+      width: 80%;
+      height: 100%;
+      border-left: 4px solid #0ff;
+      border-right: 4px solid #0ff;
+      box-sizing: border-box;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .shape {
+      position: absolute;
+      width: 75px;
+      height: 75px;
+      background-color: #4CAF50;
+      border-radius: 10px;
+      pointer-events: auto;
+      z-index: 10;
+    }
+    .circle { border-radius: 50%; background-color: #ff5733; }
+    .triangle {
+      width: 0;
+      height: 0;
+      border-left: 37px solid transparent;
+      border-right: 37px solid transparent;
+      border-bottom: 75px solid #f0f;
+      background: none;
+      border-radius: 0;
+    }
+    #clickToStart {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 32px;
+      color: #0f0;
+      display: block;
+    }
+    #scoreDisplay {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 24px;
+      color: #fff;
+      z-index: 20;
+      background-color: rgba(0, 0, 0, 0.5);
+      padding: 8px 16px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div id="gameArea">
+    <div id="scoreDisplay">Score: 0</div>
+    <div id="playAreaBorder"></div>
+    <div id="clickToStart">Click to Start</div>
+  </div>
+
+ <script>
+  const gameArea = document.getElementById('gameArea');
+  const clickToStartText = document.getElementById('clickToStart');
+  const scoreDisplay = document.getElementById('scoreDisplay');
+
+  let gameRunning = false;
+  let speed = 2000;
+  let shapesToCreate = 1;
+  let paused = false;
+  let score = 0;
+  let lastShapeIncreaseScore = 0;
+
+  function updateScore() {
+    scoreDisplay.textContent = 'Score: ' + score;
+  }
+
+  function checkSpeedAndShapeIncrease() {
+    if (score % 10 === 0 && speed > 500) {
+      speed -= 200;
+    }
+
+    if (score >= lastShapeIncreaseScore + 15) {
+      shapesToCreate += 1;
+      lastShapeIncreaseScore = score;
+    }
+  }
+
+  function getRandomShapeClass() {
+    const shapes = ['shape', 'shape circle', 'shape triangle'];
+    return shapes[Math.floor(Math.random() * shapes.length)];
+  }
+
+  function createShape(count = 1) {
+    if (!gameRunning || paused) return;
+    for (let i = 0; i < count; i++) {
+      setTimeout(() => {
+        const shape = document.createElement('div');
+        shape.className = getRandomShapeClass();
+        const maxLeft = window.innerWidth * 0.8;
+        const minLeft = window.innerWidth * 0.1;
+        shape.style.left = Math.random() * (maxLeft - minLeft - 75) + minLeft + 'px';
+        shape.style.top = '-75px';
+        gameArea.appendChild(shape);
+
+        let pos = -75;
+        const dropInterval = setInterval(() => {
+          if (!gameRunning || paused) {
+            clearInterval(dropInterval);
+            return;
+          }
+          pos += 5;
+          shape.style.top = pos + 'px';
+
+          if (pos > window.innerHeight) {
+            clearInterval(dropInterval);
+            shape.remove();
+            shapesToCreate += 1;
+            paused = true;
+            setTimeout(() => {
+              paused = false;
+              if (gameRunning) createShape(shapesToCreate);
+            }, 5000);
+          }
+        }, 16);
+
+        shape.addEventListener('click', () => {
+          clearInterval(dropInterval);
+          shape.remove();
+          score++;
+          updateScore();
+          checkSpeedAndShapeIncrease();
+          setTimeout(() => {
+            if (gameRunning && !paused) createShape(shapesToCreate);
+          }, speed);
+        });
+      }, i * 200);
+    }
+  }
+
+  gameArea.addEventListener('click', () => {
+    if (!gameRunning) {
+      gameRunning = true;
+      score = 0;
+      speed = 2000;
+      shapesToCreate = 1;
+      lastShapeIncreaseScore = 0;
+      updateScore();
+      clickToStartText.style.display = 'none';
+      createShape(shapesToCreate);
+    }
+  });
+</script>
+
+
+</body>
+</html>

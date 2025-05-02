@@ -1,0 +1,291 @@
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Run For Your Life - Fullscreen Edition</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: black;
+      color: white;
+      font-family: monospace;
+    }
+    canvas {
+      display: block;
+      background: linear-gradient(to top, #222, #111);
+      width: 100vw;
+      height: 100vh;
+    }
+    #message {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 20px;
+      z-index: 10;
+      text-align: center;
+      white-space: nowrap;
+    }
+    #scoreDisplay {
+      position: absolute;
+      top: 10px;
+      right: 20px;
+      font-size: 20px;
+      z-index: 10;
+      font-family: monospace;
+      color: #0f0;
+    }
+    #progressBar {
+      position: absolute;
+      top: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 300px;
+      height: 20px;
+      background-color: #444;
+      border: 1px solid #888;
+    }
+    #progress {
+      height: 100%;
+      width: 1%;
+      background-color: #0f0;
+    }
+    #startBtn {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 24px;
+      padding: 15px 30px;
+      background: #0f0;
+      color: black;
+      border: none;
+      cursor: pointer;
+      z-index: 10;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+  <div id="message"></div>
+  <div id="scoreDisplay"></div>
+  <div id="progressBar"><div id="progress"></div></div>
+  <button id="startBtn">Start Game</button>
+
+<script>
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  const message = document.getElementById('message');
+  const progressElement = document.getElementById('progress');
+  const scoreDisplay = document.getElementById('scoreDisplay');
+
+  let player = { x: 80, y: 0, width: 70, height: 75, dy: 0, grounded: true };
+  let gravity = 0.6;
+  let groundY = 0;
+  let obstacles = [];
+  let frame = 0;
+  let gameOver = false;
+  let progress = 1;
+  let zoomFactor = 1;
+  let controlsFlipped = false;
+  let gameStarted = false;
+  let showReminder = true;
+  let score = 0;
+
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    groundY = canvas.height - 160;
+    player.y = groundY;
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  function spawnObstacle() {
+    const randomType = Math.random();
+    let type = 'normal';
+
+    if (randomType > 0.5 && randomType <= 0.7) {
+      type = 'fake';
+    } else if (randomType > 0.7) {
+      type = 'invisible';
+    }
+
+    obstacles.push({
+      x: canvas.width,
+      y: groundY,
+      width: 50 + Math.random() * 70,
+      height: 75,
+      visible: false,
+      type: type,
+      revealed: false,
+      flashTimer: 0
+    });
+  }
+
+  function getRandomDeathMessage() {
+    const messages = [ "", "" ];
+    return messages[Math.floor(Math.random() * messages.length)];
+  }
+
+  function getRandomTaunt() {
+    const taunts = [ "", "", "", "" ];
+    return taunts[Math.floor(Math.random() * taunts.length)];
+  }
+
+  document.addEventListener('keydown', e => {
+    if ((e.key === 'ArrowUp' || e.key === ' ') && player.grounded) {
+      player.dy = -18;
+      player.grounded = false;
+    }
+
+    if (Math.random() < 0.01) {
+      controlsFlipped = !controlsFlipped;
+      message.innerText = controlsFlipped
+        ? ""
+        : "";
+    }
+  });
+
+  function startGame() {
+    gameStarted = true;
+    function update() {
+      if (gameOver) {
+        message.innerText = getRandomDeathMessage();
+        setTimeout(resetGame, 1000);
+        return;
+      }
+
+      frame++;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      player.dy += gravity;
+      player.y += player.dy;
+      if (player.y >= groundY) {
+        player.y = groundY;
+        player.dy = 0;
+        player.grounded = true;
+      }
+
+      progress += 0.05;
+      if (progress > 100) progress = 100;
+      progressElement.style.width = progress + '%';
+
+      if (showReminder) {
+        message.innerText = "";
+      } else if (progress >= 100) {
+        message.innerText = "";
+      }
+
+      if (progress >= 5) showReminder = false;
+
+      if (frame % 100 === 0) spawnObstacle();
+
+      for (let obs of obstacles) {
+        obs.x -= 5;
+        if (obs.x < canvas.width - 200) obs.visible = true;
+
+        if (obs.type === 'invisible' && !obs.revealed) {
+          const distance = obs.x - (player.x + player.width);
+          if (distance < 150 && distance > -obs.width) {
+            obs.revealed = true;
+            obs.flashTimer = 60;
+          }
+        }
+
+        if (obs.visible && (obs.type !== 'invisible' || obs.revealed)) {
+          if (obs.type === 'invisible') {
+            if (obs.flashTimer > 0) {
+              ctx.fillStyle = Math.floor(obs.flashTimer / 5) % 2 === 0 ? '#0ff' : '#111';
+              obs.flashTimer--;
+            } else {
+              ctx.fillStyle = '#0ff';
+            }
+          } else {
+            ctx.fillStyle = obs.type === 'fake' ? '#ff0' : '#f00';
+          }
+          ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+        }
+
+        if (
+          player.x < obs.x + obs.width &&
+          player.x + player.width > obs.x &&
+          player.y < obs.y + obs.height &&
+          player.y + player.height > obs.y
+        ) {
+          if (obs.type === 'fake') {
+            message.innerText = "";
+          } else if (obs.type === 'invisible' && !obs.revealed) {
+            obs.revealed = true;
+            obs.flashTimer = 60;
+            message.innerText = "Bam! Invisible wall.";
+          } else {
+            gameOver = true;
+            message.innerText = getRandomDeathMessage();
+          }
+        }
+      }
+
+      obstacles = obstacles.filter(obs => obs.x + obs.width > 0);
+
+      ctx.fillStyle = '#00f';
+      ctx.fillRect(player.x, player.y, player.width, player.height);
+
+      if (frame % 300 === 0) {
+        zoomFactor = 1 + Math.random() * 0.5;
+        canvas.style.transform = `scale(${zoomFactor})`;
+        setTimeout(() => canvas.style.transform = `scale(1)`, 500);
+      }
+
+      if (frame % 1000 === 0) {
+        message.innerText = getRandomTaunt();
+      }
+
+      if (frame % 1800 === 0) {
+        message.innerText = "";
+        setTimeout(() => {
+          message.innerText = "";
+          frame = 0;
+        }, 1500);
+      }
+
+      if (!gameOver) {
+        const change = Math.floor(Math.random() * 2000) - 500;
+        score += change;
+        if (score < 0) score = 0;
+        scoreDisplay.innerText = ``;
+      }
+
+      requestAnimationFrame(update);
+    }
+
+    update();
+  }
+
+  function resetGame() {
+    player = { x: 80, y: groundY, width: 70, height: 75, dy: 0, grounded: true };
+    obstacles = [];
+    frame = 0;
+    gameOver = false;
+    progress = 1;
+    score = 0;
+    controlsFlipped = false;
+    zoomFactor = 1;
+    showReminder = true;
+    message.innerText = "";
+    scoreDisplay.innerText = "";
+    progressElement.style.width = progress + '%';
+    startGame();
+  }
+
+  document.getElementById('startBtn').addEventListener('click', () => {
+    document.getElementById('startBtn').style.display = 'none';
+    startGame();
+  });
+</script>
+
+</body>
+</html>
