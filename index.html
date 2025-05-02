@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Icon Gallery</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f3e8ff; /* Light purple background */
+      color: #333;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    header h1 {
+      font-size: 2.5rem;
+      color: #5e2a8a;
+      letter-spacing: 1px;
+      position: relative;
+      display: inline-block;
+      padding-bottom: 10px;
+    }
+
+    header h1::after {
+      content: '';
+      display: block;
+      width: 60%;
+      height: 4px;
+      background: #b388ff;
+      margin: 10px auto 0;
+      border-radius: 2px;
+    }
+
+    .gallery-container {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 20px;
+    }
+
+    .gallery-item {
+      background-color: #fff;
+      text-align: center;
+      padding: 15px;
+      text-decoration: none;
+      color: #4a3f5c;
+      border: 2px solid #e0caff;
+      border-radius: 10px;
+      transition: transform 0.2s ease, box-shadow 0.3s ease;
+    }
+
+    .gallery-item:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 20px rgba(153, 102, 255, 0.2);
+    }
+
+    .gallery-item img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+
+    .title {
+      margin: 10px 0 5px;
+      font-size: 16px;
+      font-weight: bold;
+      color: #5e2a8a;
+    }
+
+    .creator {
+      font-size: 14px;
+      color: #7e5ca5;
+    }
+
+    @media (max-width: 768px) {
+      .gallery-container {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .gallery-container {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Icon Gallery</h1>
+  </header>
+
+  <div class="gallery-container">
+    <!-- 25 Items -->
+    <!-- You can replace # with actual links and update image/title/creator -->
+    <!-- Using placeholder images for now -->
+
+    <!-- Loop of 25 -->
+    <!-- Row 1 -->
+    <a href="abuyan.html" class="gallery-item"><img src="abuyan.jpg"><h3 class="title">Memory Sequence</h3><p class="creator">Creator: Abuyan</p></a>
+    <a href="acopio.html" class="gallery-item"><img src="acopio.jpg"><h3 class="title">The Coin Collector</h3><p class="creator">Creator: Acopio</p></a>
+    <a href="alvaro.html" class="gallery-item"><img src="alvaro.jpg"><h3 class="title">Snake</h3><p class="creator">Creator: Alvaro</p></a>
+    <a href="aquino.html" class="gallery-item"><img src="aquino.jpg"><h3 class="title">Dodging Game</h3><p class="creator">Creator: Aquino:</p></a>
+    <a href="arcilla.html" class="gallery-item"><img src="arcilla.jpg"><h3 class="title">Tic Tac Toe</h3><p class="creator">Creator: Arcilla</p></a>
+    <a href="bautista.html" class="gallery-item"><img src="bautista.png"><h3 class="title">Color Game</h3><p class="creator">Creator: Bautista</p></a>
+    <a href="bernados.html" class="gallery-item"><img src="bernados.png"><h3 class="title">Car Game</h3><p class="creator">Creator: Bernados</p></a>
+    <a href="cruz.html" class="gallery-item"><img src="cruz.png"><h3 class="title">Basketball Game</h3><p class="creator">Creator: Cruz</p></a>
+    <a href="delacruz.html" class="gallery-item"><img src="delacruz.png"><h3 class="title">Crossy Road</h3><p class="creator">Creator: DelaCruz</p></a>
+    <a href="name.html" class="gallery-item"><img src="name.jpg"><h3 class="title">game</h3><p class="creator">Creator: name</p></a>
+    <a href="name.html" class="gallery-item"><img src="name.jpg"><h3 class="title">game</h3><p class="creator">Creator: name</p></a>
+    <a href="name.html" class="gallery-item"><img src="name.jpg"><h3 class="title">game</h3><p class="creator">Creator: name</p></a>
+    <a href="name.html" class="gallery-item"><img src="name.jpg"><h3 class="title">game</h3><p class="creator">Creator: name</p></a>
+
+  </div>
+</body>
+</html>
