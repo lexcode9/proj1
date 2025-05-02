@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #333;
+      font-family: Arial, sans-serif;
+    }
+
+    .game-area {
+      width: 400px;
+      height: 600px;
+      background: #555;
+      margin: 20px auto;
+      position: relative;
+      overflow: hidden;
+      border: 5px solid #222;
+    }
+
+    .road-line {
+      width: 10px;
+      height: 100px;
+      background: white;
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      animation: moveRoad 1s linear infinite;
+    }
+
+    @keyframes moveRoad {
+      0% { top: -100px; }
+      100% { top: 600px; }
+    }
+
+    .car, .enemy {
+      width: 50px;
+      height: 100px;
+      position: absolute;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      transition: left 0.5s ease;
+    }
+
+    .car {
+      bottom: 20px;
+      left: 100px;
+      z-index: 2;
+    }
+
+    .enemy {
+      top: -120px;
+      animation-name: moveEnemy;
+      animation-timing-function: linear;
+      animation-fill-mode: forwards;
+      z-index: 1;
+    }
+
+    @keyframes moveEnemy {
+      0% { top: -120px; }
+      100% { top: 700px; }
+    }
+
+    .score-board {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: bold;
+      z-index: 3;
+    }
+
+    .pause-message {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 24px;
+      font-weight: bold;
+      color: white;
+      z-index: 10;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Game Area -->
+  <div class="game-area" id="gameArea">
+    <div class="score-board" id="score">Score: 0 | Best: 0</div>
+    <div class="pause-message" id="pauseMessage">⏸️ Paused</div>
+    <div class="car" id="car"></div>
+  </div>
+
+  <script>
+    const gameArea = document.getElementById('gameArea');
+    const car = document.getElementById('car');
+    const scoreDisplay = document.getElementById('score');
+    const pauseMessage = document.getElementById('pauseMessage');
+
+    let score = 0;
+    let bestScore = localStorage.getItem('bestScore') || 0;
+    let isPaused = false;
+    let carLane = 0;
+    const lanePositions = [100, 250];
+    let spawnInterval = 1500;
+    let speedFactor = 1.0;
+    let scoreIntervalId;
+    let spawnTimeoutId;
+
+    scoreDisplay.textContent = `Score: 0 | Best: ${bestScore}`;
+    car.style.backgroundColor = getRandomColor();
+    car.style.left = lanePositions[carLane] + 'px';
+
+    function getRandomColor() {
+      const letters = '0123456789ABCDEF';
+      let color = '#';
+      for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+      }
+      return color;
+    }
+
+    document.addEventListener('keydown', function(e) {
+      if (isPaused) return;
+
+      if (e.key === 'ArrowLeft' && carLane > 0) {
+        carLane--;
+      } else if (e.key === 'ArrowRight' && carLane < 1) {
+        carLane++;
+      }
+      car.style.left = lanePositions[carLane] + 'px';
+    });
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'p' || e.key === 'P') {
+        isPaused = !isPaused;
+        pauseMessage.style.display = isPaused ? 'block' : 'none';
+        if (isPaused) {
+          clearInterval(scoreIntervalId);
+          clearTimeout(spawnTimeoutId);
+        } else {
+          startSpawningEnemies();
+          startScoreCounter();
+        }
+      }
+    });
+
+    function startScoreCounter() {
+      scoreIntervalId = setInterval(() => {
+        score++;
+        scoreDisplay.textContent = `Score: ${score} | Best: ${bestScore}`;
+      }, 1000);
+    }
+
+    setInterval(() => {
+      if (isPaused) return;
+      const line = document.createElement('div');
+      line.classList.add('road-line');
+      gameArea.appendChild(line);
+      setTimeout(() => line.remove(), 1000);
+    }, 300);
+
+    function startSpawningEnemies() {
+      if (isPaused) return;
+      spawnEnemy();
+      spawnTimeoutId = setTimeout(startSpawningEnemies, spawnInterval);
+      if (spawnInterval > 500) spawnInterval -= 20;
+      if (speedFactor > 0.5) speedFactor -= 0.01;
+    }
+
+    function spawnEnemy() {
+      if (isPaused) return;
+      const lanesToSpawn = score >= 30 ? [0, 1] : [Math.floor(Math.random() * 2)];
+      lanesToSpawn.forEach(lane => {
+        const enemy = document.createElement('div');
+        enemy.classList.add('enemy');
+        enemy.style.backgroundColor = getRandomColor();
+        enemy.style.left = lanePositions[lane] + 'px';
+        enemy.style.animationDuration = (4 * speedFactor).toFixed(2) + 's';
+        gameArea.appendChild(enemy);
+
+        enemy.addEventListener('animationend', () => enemy.remove());
+
+        let checkCollision = setInterval(() => {
+          if (isPaused) return;
+          const carRect = car.getBoundingClientRect();
+          const enemyRect = enemy.getBoundingClientRect();
+          if (
+            carRect.left < enemyRect.right &&
+            carRect.right > enemyRect.left &&
+            carRect.top < enemyRect.bottom &&
+            carRect.bottom > enemyRect.top
+          ) {
+            clearInterval(checkCollision);
+            clearInterval(scoreIntervalId);
+            clearTimeout(spawnTimeoutId);
+
+            if (score > bestScore) {
+              bestScore = score;
+              localStorage.setItem('bestScore', bestScore);
+            }
+
+            location.reload();
+          }
+        }, 100);
+      });
+    }
+
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    document.addEventListener('touchstart', function(e) {
+      if (isPaused) return;
+      touchStartX = e.touches[0].clientX;
+    });
+
+    document.addEventListener('touchmove', function(e) {
+      if (isPaused) return;
+      touchEndX = e.touches[0].clientX;
+      if (touchEndX < touchStartX && carLane > 0) {
+        carLane--;
+      } else if (touchEndX > touchStartX && carLane < 1) {
+        carLane++;
+      }
+      car.style.left = lanePositions[carLane] + 'px';
+    });
+
+    document.addEventListener('touchend', function() {
+      touchStartX = 0;
+      touchEndX = 0;
+    });
+
+    function startGame() {
+      gameArea.style.display = 'block';
+      startScoreCounter();
+      startSpawningEnemies();
+    }
+
+    window.onload = startGame;
+  </script>
+</body>
+</html>

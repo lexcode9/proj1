@@ -1,0 +1,194 @@
+		<html>
+		<head>
+			<title>Containers Shuffle Game</title>
+			<style>
+				body {
+					font-family: Arial, sans-serif;
+					text-align: center;
+					margin-top: 50px;
+					background-color: gray;
+					
+				}
+				.game-container {
+					position: relative;
+					width: 600px;
+					height: 300px;
+					margin: 0 auto;
+				}
+				.cup {
+					position: absolute;
+					width: 80px;
+					height: 120px;
+					background-color: #8B4513;
+					border-radius: 0 0 10px 10px;
+					cursor: pointer;
+					transition: left 0.5s;
+				}
+				.ball {
+					position: absolute;
+					width: 20px;
+					height: 20px;
+					background-color: red;
+					border-radius: 50%;
+					z-index: 10;
+					transition: left 0.5s;
+				}
+				button {
+					margin-top: 20px;
+					padding: 10px 20px;
+					font-size: 16px;
+					cursor: pointer;
+				}
+				
+				#cup1 {background-color: blue;}
+				#cup2 {background-color: blue;}
+				#cup3 {background-color: blue;}
+				#cup4 {background-color: blue;}
+				#cup5 {background-color: blue;}
+				
+			</style>
+		</head>
+		<body>
+			<h1>Color Game</h1>
+			<p>Pick one container to find the ball</p>
+			
+			<div class="game-container">
+				<div class="ball" id="ball"></div>
+				<div class="cup" id="cup1"></div>
+				<div class="cup" id="cup2"></div>
+				<div class="cup" id="cup3"></div>
+				<div class="cup" id="cup4"></div>
+				<div class="cup" id="cup5"></div>
+			</div>
+		<button id="startBtn">Start Game</button>
+			<button id="shuffleBtn" disabled>Shuffle Containers</button>
+			<br>
+			<button id="guessBtn" disabled>Make Your Guess</button>
+			
+			
+			<p id="message"></p>
+			
+			
+			<script>
+		const cups = document.querySelectorAll('.cup');
+		const ball = document.getElementById('ball');
+		const startBtn = document.getElementById('startBtn');
+		const shuffleBtn = document.getElementById('shuffleBtn');
+		const guessBtn = document.getElementById('guessBtn');
+		const message = document.getElementById('message');
+
+		let ballPosition = 0;
+		let gameStarted = false;
+
+		function setupCups() {
+			cups.forEach((cup, index) => {
+				cup.style.left = (100 + index * 100) + 'px';
+				cup.style.top = '100px';
+			});
+		}
+
+		function showBall(position) {
+			const cup = cups[position];
+			ball.style.left = (parseInt(cup.style.left) + 30) + 'px';
+			ball.style.top = (parseInt(cup.style.top) + 100) + 'px';
+			ball.style.display = 'block';
+		}
+
+		function hideBall() {
+			ball.style.display = 'none';
+		}
+
+		function shuffleCups() {
+			message.textContent = 'Containers are shuffling... Watch carefully!';
+			const shuffleMoves = 10;
+			let moves = 0;
+
+			const shuffleInterval = setInterval(() => {
+				const cup1 = Math.floor(Math.random() * 5);
+				let cup2 = Math.floor(Math.random() * 5);
+				while (cup2 === cup1) {
+					cup2 = Math.floor(Math.random() * 5);
+				}
+
+				const tempLeft = cups[cup1].style.left;
+				cups[cup1].style.left = cups[cup2].style.left;
+				cups[cup2].style.left = tempLeft;
+
+				if (cup1 === ballPosition) {
+					ballPosition = cup2;
+				} else if (cup2 === ballPosition) {
+					ballPosition = cup1;
+				}
+
+				moves++;
+				if (moves >= shuffleMoves) {
+					clearInterval(shuffleInterval);
+
+					// Assign a new random position to the ball
+					const newBallPosition = Math.floor(Math.random() * 5);
+					ballPosition = newBallPosition;
+
+					message.textContent = 'Now make your guess!';
+					guessBtn.disabled = false;
+				}
+			}, 300);
+		}
+
+		function handleGuess(e) {
+			if (!gameStarted) return;
+
+			const clickedCup = Array.from(cups).indexOf(e.target);
+			if (clickedCup === ballPosition) {
+				message.textContent = 'Congratulations! You found the ball!';
+			} else {
+				message.textContent = 'Sorry, the ball was under another container. Try again!';
+			}
+
+			showBall(ballPosition);
+
+			gameStarted = false;
+			startBtn.disabled = false;
+			shuffleBtn.disabled = true;
+			guessBtn.disabled = true;
+		}
+
+		function initGame() {
+			setupCups();
+
+			startBtn.addEventListener('click', () => {
+				gameStarted = true;
+				startBtn.disabled = true;
+				shuffleBtn.disabled = false;
+				message.textContent = 'Watch where the ball goes...';
+
+				ballPosition = Math.floor(Math.random() * 5);
+				showBall(ballPosition);
+
+				setTimeout(() => {
+					hideBall();
+					message.textContent = 'Now click "Shuffle Containers" to begin!';
+				}, 2000);
+			});
+
+			shuffleBtn.addEventListener('click', () => {
+				shuffleBtn.disabled = true;
+				shuffleCups();
+			});
+
+			guessBtn.addEventListener('click', () => {
+				// Do nothing — cups themselves are clickable
+			});
+
+			cups.forEach(cup => {
+				cup.addEventListener('click', handleGuess);
+			});
+		}
+
+		document.addEventListener('DOMContentLoaded', initGame);
+	</script>
+
+
+			
+		</body>
+		</html>
+

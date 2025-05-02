@@ -1,0 +1,203 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Final Train Game</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+    canvas {
+      background: gray;
+      display: block;
+      margin: 0 auto;
+      touch-action: manipulation;
+    }
+  </style>
+</head>
+<body>
+<canvas id="gameCanvas" width="400" height="600"></canvas>
+
+<script>
+  const canvas = document.getElementById("gameCanvas");
+  const ctx = canvas.getContext("2d");
+
+  const player = {
+    x: 180,
+    y: 550,
+    size: 30,
+    color: "yellow"
+  };
+
+  const cars = [];
+  for (let i = 0; i < 5; i++) {
+    cars.push({
+      x: Math.random() * 300 + 20,
+      y: i * 100 + 100,
+      width: 60,
+      height: 40,
+      color: "orange",
+      speed: 3 + Math.random() * 3
+    });
+  }
+
+  const barriers = {
+    top: { y: 0, height: 50 },
+    left: { x: 0, width: 20 },
+    right: { x: 380, width: 20 },
+    color: "black"
+  };
+
+  const deadEndMessageShown = { value: false };
+
+ 
+ const trainCars = [];
+const carCount = 10; 
+const carWidth = 30;
+const carHeight = 20;
+const carGap = 3;
+const trainSpeed = 7;
+
+function initTrain() {
+  trainCars.length = 0;
+  for (let i = 0; i < carCount; i++) {
+    trainCars.push({
+      x: -i * (carWidth + carGap),
+      y: 10,
+      width: carWidth,
+      height: carHeight,
+      color: "blue",
+      speed: trainSpeed
+    });
+  }
+}
+
+function drawTrain() {
+  trainCars.forEach(car => {
+    ctx.fillStyle = car.color;
+    ctx.fillRect(car.x, car.y, car.width, car.height);
+  });
+}
+
+function updateTrain() {
+  trainCars.forEach((car, i) => {
+    car.x += car.speed;
+    if (car.x > canvas.width) {
+     
+      car.x = -carWidth - (i * (carWidth + carGap));
+    }
+  });
+}
+
+  function drawPlayer() {
+    ctx.fillStyle = player.color;
+    ctx.fillRect(player.x, player.y, player.size, player.size);
+  }
+
+  function drawCars() {
+    cars.forEach(car => {
+      ctx.fillStyle = car.color;
+      ctx.fillRect(car.x, car.y, car.width, car.height);
+    });
+  }
+
+  function updateCars() {
+    cars.forEach(car => {
+      car.x += car.speed;
+      if (car.x > 380) {
+        car.x = -car.width + 20;
+        car.speed = 2 + Math.random() * 3;
+      }
+    });
+  }
+
+  function drawBarriers() {
+    ctx.fillStyle = barriers.color;
+    ctx.fillRect(0, barriers.top.y, canvas.width, barriers.top.height); // top
+    ctx.fillRect(barriers.left.x, 0, barriers.left.width, canvas.height); // left
+    ctx.fillRect(barriers.right.x, 0, barriers.right.width, canvas.height); // right
+  }
+
+  function drawTrain() {
+    trainCars.forEach(car => {
+      ctx.fillStyle = car.color;
+      ctx.fillRect(car.x, car.y, car.width, car.height);
+    });
+  }
+
+  function updateTrain() {
+    trainCars.forEach((car, i) => {
+      car.x += car.speed;
+      if (car.x > canvas.width) {
+        car.x = -carWidth - (i * (carWidth + carGap));
+      }
+    });
+  }
+
+  function checkCollision() {
+    for (let car of cars) {
+      if (
+        player.x < car.x + car.width &&
+        player.x + player.size > car.x &&
+        player.y < car.y + car.height &&
+        player.y + player.size > car.y
+      ) {
+        alert("You got hit! Game Over.");
+        resetGame();
+        return;
+      }
+    }
+
+    for (let car of trainCars) {
+      if (
+        player.x < car.x + car.width &&
+        player.x + player.size > car.x &&
+        player.y < car.y + car.height &&
+        player.y + player.size > car.y
+      ) {
+        alert("You got hit by the train! Game Over.");
+        resetGame();
+        return;
+      }
+    }
+  }
+
+  function checkDeadEnd() {
+    if (player.y <= barriers.top.y + barriers.top.height && !deadEndMessageShown.value) {
+      alert("No Way Out! Moving back.");
+      deadEndMessageShown.value = true;
+      player.y += 40;
+    }
+  }
+
+  function resetGame() {
+    player.x = 180;
+    player.y = 550;
+    deadEndMessageShown.value = false;
+    initTrain();
+  }
+
+  function gameLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawBarriers();
+    drawPlayer();
+    drawCars();
+    drawTrain();
+    updateCars();
+    updateTrain();
+    checkCollision();
+    checkDeadEnd();
+    requestAnimationFrame(gameLoop);
+  }
+
+  canvas.addEventListener("click", () => {
+    if (player.y - 40 >= barriers.top.y + barriers.top.height) {
+      player.y -= 40;
+    }
+  });
+
+  initTrain();
+  gameLoop();
+</script>
+</body>
+</html>

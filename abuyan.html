@@ -1,0 +1,210 @@
+<html>
+    <head>
+        <title>HINDI MO TO KAYA MATAPOS!!!</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                margin-top: 30px;
+                background-color: #f5f5f5;
+                color: #333;
+            }
+            h1 {
+                font-weight: 300;
+                margin-bottom: 20px;
+            }
+            #game {
+                display: grid;
+                grid-template-columns: repeat(3, 80px);
+                gap: 15px;
+                margin-bottom: 30px;
+            }
+            .box {
+                width: 80px;
+                height: 80px;
+                background-color: #fff;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                font-size: 24px;
+                cursor: pointer;
+                border-radius: 10px;
+                user-select: none;
+                color: #333;
+                box-shadow: 0 2px 5px rgba(0,0,0,1);
+                transition: all 0.3s ease;
+            }
+            .box:hover {
+                box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            }
+            .box.correct {
+                background-color: #e8f5e9;
+                color: #228b22;
+            }
+            .box.wrong {
+                background-color: #f08080;
+                color: #ff0000;
+            }
+            #try-again {
+                padding: 10px 20px;
+                background-color: #66cdaa;
+                box-shadow: 0 2px 5px rgba(0,0,0,1);
+                color: white;
+                border: none;
+                border-radius: 4px;
+                font-size: 16px;
+                cursor: pointer;
+                transition: background-color 0.3s;
+                margin-top: 20px;
+            }
+            #try-again:hover:not(:disabled) {
+                background-color: #7fffd4;
+            }
+            #try-again:disabled {
+                background-color: #cccccc;
+                cursor: not-allowed;
+            }
+            #message {
+                margin-bottom: 20px;
+                min-height: 24px;
+                color: #c62828;
+                font-weight: bold;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Memory Sequence</h1>
+        <div id="message"></div>
+        <div id="game"></div>
+        <button id="try-again">Try Again</button>
+        <script>
+            const gameContainer = document.getElementById("game");
+            const tryAgainBtn = document.getElementById("try-again");
+            const messageEl = document.getElementById("message");
+            const totalBoxes = 12;
+            const numberPool = [...Array(9).keys()].map(x => x + 1);
+            let positions = [];
+            let currentNumber = 1;
+            let canClick = false;
+            let nineIndex = -1;
+            let wrongChoice = null;
+            let showNumbersTimeout = null;
+            let enableClickTimeout = null;
+            let messageTimeout = null;
+
+            function initializeGame() {
+                clearTimeout(showNumbersTimeout);
+                clearTimeout(enableClickTimeout);
+                clearTimeout(messageTimeout);
+                
+                tryAgainBtn.disabled = true;
+                
+                messageEl.textContent = "";
+                positions = Array(totalBoxes).fill(null);
+                const usedIndices = new Set();
+
+                for (let i = 0; i < 9; i++) {
+                    let index;
+                    do {
+                        index = Math.floor(Math.random() * totalBoxes);
+                    } while (usedIndices.has(index));
+                    usedIndices.add(index);
+                    positions[index] = numberPool[i];
+                    if (numberPool[i] === 9) {
+                        nineIndex = index;
+                    }
+                }
+
+                currentNumber = 1;
+                canClick = false;
+                wrongChoice = null;
+                renderBoxes(true);
+                
+                showNumbersTimeout = setTimeout(() => {
+                    canClick = true;
+                    renderBoxes(false);
+                    tryAgainBtn.disabled = false;
+                }, 5000);
+            }
+
+            function renderBoxes(showNumbers = false) {
+                gameContainer.innerHTML = "";
+                positions.forEach((val, i) => {
+                    const box = document.createElement("div");
+                    box.className = "box";
+                    if (wrongChoice === i) {
+                        box.classList.add("wrong");
+                        box.textContent = val;
+                    }
+                    box.dataset.index = i;
+                    if (showNumbers && val !== null) {
+                        box.textContent = val;
+                    }
+                    box.addEventListener("click", handleClick);
+                    gameContainer.appendChild(box);
+                });
+            }
+
+            function handleClick(e) {
+                if (!canClick) return;
+
+                const index = +e.currentTarget.dataset.index;
+                const val = positions[index];
+
+                if (val === currentNumber) {
+                    e.currentTarget.classList.add("correct");
+                    e.currentTarget.textContent = val;
+                    
+                    if (currentNumber === 8) {
+                        removeNine();
+                    }
+                    
+                    currentNumber++;
+                    
+                    if (currentNumber > 9) {
+                        setTimeout(() => {
+                            messageEl.textContent = "Congratulations! You won!";
+                            tryAgainBtn.disabled = false;
+                            setTimeout(initializeGame, 5000);
+                        }, 500);
+                    }
+                } else {
+                    wrongChoice = index;
+                    e.currentTarget.classList.add("wrong");
+                    e.currentTarget.textContent = val;
+                    messageEl.textContent = 'Wrong Choice! Your needed Number is ' + currentNumber + '.';
+                    canClick = false;
+                    tryAgainBtn.disabled = false;
+                    
+                    clearTimeout(messageTimeout);
+                    messageTimeout = setTimeout(() => {
+                        messageEl.textContent = '';
+                    }, 2000);
+                }
+            }
+
+            function removeNine() {
+                positions[nineIndex] = null;
+                nineIndex = -1;
+                
+                setTimeout(() => {
+                    currentNumber = 1;
+                    canClick = false;
+                    tryAgainBtn.disabled = true;
+                    renderBoxes(true);
+                    enableClickTimeout = setTimeout(() => {
+                        canClick = true;
+                        renderBoxes(false);
+                        tryAgainBtn.disabled = false;
+                    }, 3000);
+                }, 2000);
+            }
+
+            initializeGame();
+
+            tryAgainBtn.addEventListener("click", initializeGame);
+        </script>
+    </body>
+</html>

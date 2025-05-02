@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(45deg, #4b6cb7, #182848);
+            color: #fff;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #desc {
+            margin-bottom: 15px;
+            font-size: 15px;
+            font-weight: bold;
+            text-shadow: 0 0 8px rgba(0, 255, 255, 0.7);
+        }
+
+        #board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 10px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+        }
+
+        .cell {
+            background: linear-gradient(135deg, #f9f9f9, #e0e0e0);
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            color: #2f3b44;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5em;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.1s ease, box-shadow 0.3s ease, font-size 0.1s ease;
+            text-shadow: 0 0 8px rgba(0, 255, 255, 0.7);
+        }
+
+        .cell:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 1);
+            background: linear-gradient(135deg, #c9e2ff, #f3f7ff);
+        }
+
+        .cell:active {
+            transform: scale(0.95);
+            box-shadow: 0 0 15px rgba(255, 165, 0, 0.6);
+        }
+
+        .cell.changed {
+            font-size: 3em;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="desc">You can still click any block and replace its symbol.</div>
+        <div id="board"></div>
+    </div>
+
+<script>
+    const board = document.getElementById("board");
+    const glitchSymbols = ["@", "#", "$", "&", "*", "%", "!", "?", "X", "O"]; 
+    const cells = [];
+    let playerClicks = 0;
+    let aiMoves = 0;
+
+    let gameBoard = [
+        ["", "", ""],
+        ["", "", ""],
+        ["", "", ""],
+    ];
+
+    function getRow(index) {
+        return Math.floor(index / 3);
+    }
+
+    function getCol(index) {
+        return index % 3;
+    }
+
+    function updateGameBoard(row, col, symbol) {
+        gameBoard[row][col] = symbol;
+    }
+
+    function getValidSymbol(row, col, currentPlayer = "") {
+        const usedSymbols = new Set();
+
+        
+        for (let c = 0; c < 3; c++) {
+            if (gameBoard[row][c] !== "") {
+                usedSymbols.add(gameBoard[row][c]);
+            }
+        }
+
+        
+        for (let r = 0; r < 3; r++) {
+            if (gameBoard[r][col] !== "") {
+                usedSymbols.add(gameBoard[r][col]);
+            }
+        }
+
+        
+        if (row === col) {
+            for (let i = 0; i < 3; i++) {
+                if (gameBoard[i][i] !== "") {
+                    usedSymbols.add(gameBoard[i][i]);
+                }
+            }
+        }
+        if (row + col === 2) {
+            for (let i = 0; i < 3; i++) {
+                if (gameBoard[i][2 - i] !== "") {
+                    usedSymbols.add(gameBoard[i][2 - i]);
+                }
+            }
+        }
+        if (currentPlayer) {
+            usedSymbols.add(currentPlayer);
+        }
+
+        const availableSymbols = glitchSymbols.filter((symbol) => !usedSymbols.has(symbol));
+        if (availableSymbols.length === 0) {
+            return null;
+        }
+        return availableSymbols[Math.floor(Math.random() * availableSymbols.length)];
+    }
+
+    function updateSymbol(cell, index, newSymbol) {
+        const row = getRow(index);
+        const col = getCol(index);
+
+        gameBoard[row][col] = newSymbol;
+        cell.textContent = newSymbol;
+        cell.classList.add("changed");
+        setTimeout(() => {
+            cell.classList.remove("changed");
+        }, 100);
+    }
+
+    function handlePlayerClick(index) {
+        const cell = cells[index];
+        const row = getRow(index);
+        const col = getCol(index);
+        let symbol;
+
+        if (playerClicks < 2) {
+            symbol = "X";
+        } else {
+            symbol = getValidSymbol(row, col, "X");
+            if (!symbol) {
+                return;
+            }
+            if (symbol === cell.textContent) {
+                const allAvailable = glitchSymbols.filter(sym => sym !== cell.textContent);
+                if (allAvailable.length === 0) {
+                    return;
+                }
+                symbol = allAvailable[Math.floor(Math.random() * allAvailable.length)];
+            }
+        }
+
+        updateSymbol(cell, index, symbol);
+        updateGameBoard(row, col, symbol);
+        playerClicks++;
+        setTimeout(aiMove, 300);
+    }
+
+    function aiMove() {
+        let bestMove = -1;
+        let bestSymbol = null;
+        let emptyCells = [];
+
+        for (let i = 0; i < 9; i++) {
+            if (cells[i].textContent === "") {
+                emptyCells.push(i);
+            }
+        }
+
+        if (emptyCells.length > 0) {
+            for (const emptyCellIndex of emptyCells) {
+                const cellElement = cells[emptyCellIndex];
+                const rowNum = getRow(emptyCellIndex);
+                const colNum = getCol(emptyCellIndex);
+                const possibleSymbol = getValidSymbol(rowNum, colNum, "O");
+                if (possibleSymbol) {
+                    bestMove = emptyCellIndex;
+                    bestSymbol = possibleSymbol;
+                    break;
+                }
+            }
+        }
+
+        if (bestMove === -1) {
+            let cellToReplaceIndex = Math.floor(Math.random() * 9);
+            const cellElement = cells[cellToReplaceIndex];
+            const rowNum = getRow(cellToReplaceIndex);
+            const colNum = getCol(cellToReplaceIndex);
+            const newSymbol = getValidSymbol(rowNum, colNum, "O");
+            if (newSymbol) {
+                updateSymbol(cellElement, cellToReplaceIndex, newSymbol);
+                updateGameBoard(rowNum, colNum, newSymbol);
+                aiMoves++;
+            }
+
+        } else {
+            const cell = cells[bestMove];
+            const row = getRow(bestMove);
+            const col = getCol(bestMove);
+            updateSymbol(cell, bestMove, bestSymbol);
+            updateGameBoard(row, col, bestSymbol);
+            aiMoves++;
+        }
+    }
+
+    for (let i = 0; i < 9; i++) {
+        const cell = document.createElement("div");
+        cell.classList.add("cell");
+        board.appendChild(cell);
+        cells.push(cell);
+        cell.addEventListener("click", () => handlePlayerClick(i));
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unfinishable Coin Collector</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background-color: rgb(223, 208, 184);
+        }
+        canvas {
+            border: 2px solid black;
+            display: block;
+            margin: 20px auto;
+            border-radius: 20px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, .5);
+            backdrop-filter: blur(20px);
+            background-color:#FFF8F8;
+            
+        }
+    </style>
+</head>
+<body>
+    <h1>The Coin Collector</h1>
+    <p>Collect coins, but beware the game only gets harder!</p>
+    <canvas id="gameCanvas" width="500" height="500"></canvas>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const player = { x: 240, y: 240, size: 20, color: 'blue', speed: 10 };
+        let coins = [{ x: Math.random() * 480, y: Math.random() * 480, size: 10, color: 'gold' }];
+        const obstacles = [];
+
+        let score = 0;
+        let gameActive = true;
+        const restartButton = document.createElement('button');
+
+
+        function drawScore() {
+        ctx.fillStyle = 'black';
+        ctx.font = '20px Arial';
+        ctx.fillText(`Score: ${score}`, 10, 30);
+        }
+
+        function drawPlayer() {
+            ctx.fillStyle = player.color;
+            ctx.fillRect(player.x, player.y, player.size, player.size);
+        }
+
+        function drawCoins() {
+            coins.forEach(coin => {
+                ctx.fillStyle = coin.color;
+                ctx.beginPath();
+                ctx.arc(coin.x, coin.y, coin.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        function drawObstacles() {
+            obstacles.forEach(obstacle => {
+                ctx.fillStyle = 'red';
+                ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+            });
+        }
+
+function movePlayer(event) {
+    let newX = player.x;
+    let newY = player.y;
+
+    if (event.key === 'ArrowUp' && player.y > 0) newY -= player.speed;
+    if (event.key === 'ArrowDown' && player.y + player.size < canvas.height) newY += player.speed;
+    if (event.key === 'ArrowLeft' && player.x > 0) newX -= player.speed;
+    if (event.key === 'ArrowRight' && player.x + player.size < canvas.width) newX += player.speed;
+
+    if (!checkCollision(newX, newY)) {
+        player.x = newX;
+        player.y = newY;
+    }
+
+    collectCoins();
+}
+
+function checkCollision(newX, newY) {
+    return obstacles.some(obstacle => 
+        newX < obstacle.x + obstacle.width &&
+        newX + player.size > obstacle.x &&
+        newY < obstacle.y + obstacle.height &&
+        newY + player.size > obstacle.y
+    );
+}
+
+function collectCoins() {
+    coins.forEach((coin, index) => {
+        const distance = Math.sqrt(Math.pow(player.x + player.size / 2 - coin.x, 2) + Math.pow(player.y + player.size / 2 - coin.y, 2));
+        if (distance < player.size / 2 + coin.size) {
+            coins.splice(index, 1);
+            coins.push({ x: Math.random() * 480, y: Math.random() * 480, size: 10, color: 'gold' });
+            score++;
+            player.speed += 0.5; // Increase speed slightly
+            spawnObstacles();
+        }
+    });
+}
+
+
+
+        function spawnObstacles() {
+    let difficultyMultiplier = Math.ceil(score / 3);
+    for (let i = 0; i < difficultyMultiplier; i++) {
+        obstacles.push({
+            x: Math.random() * 480,
+            y: Math.random() * 480,
+            width: Math.random() * 40 + 20,
+            height: Math.random() * 40 + 20
+        });
+    }
+}
+
+        function updateObstacles() {
+            obstacles.forEach(obstacle => {
+                obstacle.y += Math.random() * 2 - 1; 
+                obstacle.x += Math.random() * 2 - 1;
+                if (obstacle.x < 0 || obstacle.x + obstacle.width > canvas.width || obstacle.y < 0 || obstacle.y + obstacle.height > canvas.height) {
+                    obstacle.x = Math.random() * 480;
+                    obstacle.y = Math.random() * 480;
+                }
+            });
+        }
+
+        function gameOver() {
+        gameActive = false;
+        ctx.fillStyle = 'black';
+        ctx.font = '30px Arial';
+        ctx.fillText(`Game Over! Score: ${score}`, 150, 250);
+        document.removeEventListener('keydown', movePlayer);
+        clearInterval(timerInterval);
+        }
+
+const timerInterval = setInterval(() => {
+    if (timeLeft > 0) {
+        timeLeft--;
+    } else {
+        gameOver();
+    }
+}, 1000);
+
+
+function updateGame() {
+    if (!gameActive) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawPlayer();
+    drawCoins();
+    drawObstacles();
+    drawScore();
+    updateObstacles();
+    requestAnimationFrame(updateGame);
+}
+
+        document.addEventListener('keydown', movePlayer);
+        updateGame();
+    </script>
+</body>
+</html>

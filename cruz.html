@@ -1,0 +1,278 @@
+<html>
+<head>
+  <style>
+    body {
+		  text-align: center;
+		  background: linear-gradient(to bottom, #2196F3, #00BCD4);
+		  font-family: Arial, sans-serif;
+    }
+
+    #basketballcourt {
+		  position: relative;
+		  width: 400px;
+		  height: 600px;
+		  margin: 20px auto;
+		  background: #e7c000;
+		  border: 2px solid #333;
+		  overflow: hidden;
+		  border-radius: 15px;
+    }
+
+    #hoop {
+		  position: absolute;
+		  top: 80px; 
+		  left: 50%;
+		  transform: translateX-60%); 
+		  width: 100px;
+		  height: 20px;
+		  background: red;
+		  border-radius: 10px;
+    }
+
+    #ball {
+		  position: absolute;
+		  bottom: 60px;
+		  left: 50%;
+		  width: 30px;
+		  height: 30px;
+		  background: #ff6800;
+		  border-radius: 50%;
+		  transform: translateX(-50%);
+    }
+
+    #score, #miss-attempts {
+		  font-size: 24px;
+		  color: white;
+    }
+
+    #shoot-btn {
+		  margin-top: 20px;
+		  padding: 10px 20px;
+		  font-size: 18px;
+		  cursor: pointer;
+		  background-color: #ff9800;
+		  border: none;
+		  color: white;
+		  border-radius: 5px;
+    }
+
+    #shoot-btn:hover {
+		  background-color: #fb8c00;
+    }
+
+    #win-message {
+		  color: #4CAF50;
+		  font-size: 28px;
+		  display: none;
+		  margin-top: 20px;
+    }
+
+   #miss-message {
+		  position: absolute;
+		  top: 50%;
+		  left: 50%;
+		  transform: translate(-50%, -50%);
+		  color: #ff4444;
+		  font-size: 20px;
+		  display: none;
+		  margin-top: 15px;
+}
+
+   #freethrow {
+		  position: absolute;
+		  top: 30px;
+		  left: 50%;
+		  width: 370px;
+		  height: 800px;
+		  border-radius: 40%;
+		  border: 3px solid #fff;
+		  transform: translate(-50%, -50%);
+    }
+
+    #board {
+		  position: absolute;
+		  top: 23px;
+		  left: 50%;
+		  width: 180px;
+		  height: 120px;
+		  border: 3px solid white;
+		  transform: translateX(-50%);
+    }
+
+    #ftline {
+		  position: absolute;
+		  top: 55%;
+		  left: 56px;
+		  width: 72%;
+		  height: 3px;
+		  background-color: white;
+    }
+
+    #shadow {
+		  position: absolute;
+		  bottom: 41px;
+		  left: 50%;
+		  width: 100px;
+		  height: 20px;
+		  background-color: #443e3a;
+		  border-radius: 50%;
+		  transform: translateX(-50%);
+    }
+  </style>
+</head>
+<body>
+	  <h1>Basketball Game</h1>
+	  <h3>SCORE 10 TO WIN  /  MISSED 5 TIMES! SCORE RESET.	</h3>
+	  <div id="score">Score: 0</div>
+	  <div id="miss-attempts">Missed: 0</div>
+  <div id="basketballcourt">
+		<div id="hoop"></div>
+		<div id="ball"></div>
+		<div id="freethrow"></div>
+		<div id="board"></div>
+		<div id="ftline"></div>
+		<div id="shadow"></div>
+  </div>
+	  <button id="shoot-btn">Shoot the ball</button>
+	  <div id="win-message">You Win!</div>
+	  <div id="miss-message">You missed 5 Shots! Scores reset.</div>
+
+  <script>
+		const hoop = document.getElementById('hoop');
+		const ball = document.getElementById('ball');
+		const scoreDisplay = document.getElementById('score');
+		const missAttemptsDisplay = document.getElementById('miss-attempts');
+		const winMessage = document.getElementById('win-message');
+		const missMessage = document.getElementById('miss-message');
+		const shootBtn = document.getElementById('shoot-btn');
+		const board = document.getElementById('board');
+
+		let hoopPos = 300 / 2;
+		let hoopDir = 1;
+		let hoopSpeed = 0;
+		let score = 0;
+		let gameWon = false;
+		let ballMoving = false;
+		let isHoopMoving = false;
+		let missCount = 0;
+
+		hoop.style.left = `${hoopPos}px`;
+		board.style.left = `${hoopPos + 50}px`;
+
+    function moveHoop() {
+		  if (!isHoopMoving) return;
+
+		  if (score === 9 && !gameWon) {
+			hoopSpeed = 5 + Math.sin(Date.now() / 100) * 2;
+		  }
+
+		  hoopPos += hoopDir * hoopSpeed;
+		  if (hoopPos > 300 || hoopPos < 0) hoopDir *= -1;
+
+		  hoop.style.left = `${hoopPos}px`;
+		  board.style.left = `${hoopPos + 50}px`;
+
+		  if (!gameWon) requestAnimationFrame(moveHoop);
+		}
+
+    function shootBall() {
+		  if (ballMoving || gameWon) return;
+
+		  ballMoving = true;
+		  let ballY = 60;
+		  let ballX = 50;
+		  let curveOffset = 0;
+
+		  const finalShot = (score === 9);
+		  const curveDirection = finalShot ? (Math.random() < 0.5 ? -1 : 1) : 0;
+
+		  const shootInterval = setInterval(() => {
+			ballY += 20;
+
+			if (finalShot) {
+			  curveOffset += 0.3;
+			  ballX += curveOffset * curveDirection;
+			  ball.style.left = `${ballX}%`;
+			}
+
+			ball.style.bottom = `${ballY}px`;
+
+			const hoopRect = hoop.getBoundingClientRect();
+			const ballRect = ball.getBoundingClientRect();
+
+			const isHit =
+			  ballRect.top <= hoopRect.bottom &&
+			  ballRect.left >= hoopRect.left &&
+			  ballRect.right <= hoopRect.right;
+
+			if (isHit && !finalShot) {
+			  clearInterval(shootInterval);
+			  score++;
+			  scoreDisplay.textContent = `Score: ${score}`;
+
+			  if (score === 1) {
+				isHoopMoving = true;
+				hoopSpeed = 2;
+				moveHoop();
+			  }
+
+			  if (score === 5) {
+				hoopSpeed = 4;
+			  }
+
+			  resetBall();
+
+			  if (score >= 10) {
+				gameWon = true;
+				winMessage.style.display = 'block';
+			  }
+			}
+
+			if (ballY >= 500) {
+			  clearInterval(shootInterval);
+			  missCount++;
+			  missAttemptsDisplay.textContent = `Missed: ${missCount}`;
+
+			  if (missCount >= 5) {
+				showMissMessage();
+				resetGame();
+			  }
+
+			  resetBall();
+			}
+		  }, 30);
+    }
+
+    function resetBall() {
+		  ball.style.bottom = '60px';
+		  ball.style.left = '50%';
+		  ballMoving = false;
+    }
+
+    function showMissMessage() {
+		  missMessage.style.display = 'block';
+		  setTimeout(() => {
+			missMessage.style.display = 'none';
+		  }, 2000);
+    }
+
+    function resetGame() {
+		  score = 0;
+		  missCount = 0;
+		  hoopSpeed = 0;
+		  isHoopMoving = false;
+		  hoopPos = 300 / 2;
+		  hoop.style.left = `${hoopPos}px`;
+		  board.style.left = `${hoopPos + 50}px`;
+		  ball.style.bottom = '60px';
+		  ball.style.left = '50%';
+		  scoreDisplay.textContent = 'Score: 0';
+		  missAttemptsDisplay.textContent = 'Missed: 0';
+		  winMessage.style.display = 'none';
+		  gameWon = false;
+    }
+
+		shootBtn.addEventListener('click', shootBall);
+  </script>
+</body>
+</html>
