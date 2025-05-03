@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Endless Shrinking Paddle Ping Pong</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #222;
+            color: white;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .game-container {
+            text-align: center;
+        }
+
+        #game-board {
+            position: relative;
+            width: 800px;
+            height: 500px;
+            background-color: #111;
+            border: 2px solid #444;
+            overflow: hidden;
+            margin: 20px auto;
+        }
+
+        .paddle {
+            position: absolute;
+            width: 20px;
+            background-color: white;
+            border-radius: 10px;
+        }
+
+        #player-paddle {
+            left: 30px;
+            height: 120px;
+            background-color: #4CAF50;
+            transition: height 0.2s ease;
+        }
+
+        #ai-paddle {
+            right: 30px;
+            height: 120px;
+            background-color: #F44336;
+        }
+
+        .ball {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: white;
+            border-radius: 50%;
+        }
+
+        .score {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .center-line {
+            position: absolute;
+            width: 2px;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.2);
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .instructions {
+            margin-top: 20px;
+            font-size: 1.2em;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="score">
+            <span id="player-score">0</span> - <span id="ai-score">0</span>
+        </div>
+        <div id="game-board">
+            <div class="center-line"></div>
+            <div id="player-paddle" class="paddle"></div>
+            <div id="ball" class="ball"></div>
+            <div id="ai-paddle" class="paddle"></div>
+        </div>
+        <div class="instructions">Use W (up) and S (down) keys to move your paddle</div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const gameBoard = document.getElementById('game-board');
+            const playerPaddle = document.getElementById('player-paddle');
+            const aiPaddle = document.getElementById('ai-paddle');
+            const ball = document.getElementById('ball');
+            const playerScoreDisplay = document.getElementById('player-score');
+            const aiScoreDisplay = document.getElementById('ai-score');
+            
+            let playerScore = 0;
+            let aiScore = 0;
+            let ballX = 400;
+            let ballY = 250;
+            let ballSpeedX = 8;
+            let ballSpeedY = 8;
+            let playerPaddleY = 190;
+            let aiPaddleY = 190;
+            let playerPaddleHeight = 120;
+            let animationId;
+            
+            const keys = {
+                w: false,
+                s: false
+            };
+            
+            const initialPaddleHeight = 120;
+            const minPaddleHeight = 0;
+            const shrinkAmount = 10;
+            const aiPaddleHeight = 120;
+            const aiErrorMargin = 40;
+            const speedIncreaseFactor = 1.05;
+            const paddleSpeed = 10;
+         
+            document.addEventListener('keydown', (e) => {
+                if (e.key.toLowerCase() === 'w') keys.w = true;
+                if (e.key.toLowerCase() === 's') keys.s = true;
+            });
+            
+            document.addEventListener('keyup', (e) => {
+                if (e.key.toLowerCase() === 'w') keys.w = false;
+                if (e.key.toLowerCase() === 's') keys.s = false;
+            });
+            
+            function handlePlayerMovement() {
+                if (keys.w && playerPaddleY > 0) {
+                    playerPaddleY -= paddleSpeed;
+                }
+                if (keys.s && playerPaddleY < gameBoard.clientHeight - playerPaddleHeight) {
+                    playerPaddleY += paddleSpeed;
+                }
+                playerPaddle.style.top = playerPaddleY + 'px';
+            }
+        
+            function moveAIPaddle() {
+                const targetY = ballY - aiPaddleHeight / 2;
+                
+                if (ballSpeedX > 0) {
+                    const error = (Math.random() * aiErrorMargin) - (aiErrorMargin / 2);
+                    const reactionDelay = 0.08 + Math.random() * 0.1;
+                    aiPaddleY += (targetY + error - aiPaddleY) * reactionDelay;
+                }
+                
+                aiPaddleY = Math.max(0, Math.min(aiPaddleY, gameBoard.clientHeight - aiPaddleHeight));
+                aiPaddle.style.top = aiPaddleY + 'px';
+            }
+        
+            function updateBall() {                
+                ballX += ballSpeedX;
+                ballY += ballSpeedY;
+                ball.style.left = ballX + 'px';
+                ball.style.top = ballY + 'px';
+                
+                if (ballY <= 0 || ballY >= gameBoard.clientHeight - ball.offsetHeight) {
+                    ballSpeedY = -ballSpeedY;
+                }
+                
+                if (playerPaddleHeight > 0 && 
+                    ballX <= playerPaddle.offsetWidth + 30 && 
+                    ballY + ball.offsetHeight >= playerPaddleY && 
+                    ballY <= playerPaddleY + playerPaddleHeight) {
+                    ballSpeedX = Math.abs(ballSpeedX) * speedIncreaseFactor;
+                    const hitPosition = (ballY - playerPaddleY) / playerPaddleHeight;
+                    ballSpeedY = (hitPosition - 0.5) * 12;
+                    shrinkPlayerPaddle();
+                }
+                
+                if (ballX >= gameBoard.clientWidth - aiPaddle.offsetWidth - 30 - ball.offsetWidth && 
+                    ballY + ball.offsetHeight >= aiPaddleY && 
+                    ballY <= aiPaddleY + aiPaddleHeight) {
+                    ballSpeedX = -Math.abs(ballSpeedX) * speedIncreaseFactor;
+                    const hitPosition = (ballY - aiPaddleY) / aiPaddleHeight;
+                    ballSpeedY = (hitPosition - 0.5) * 12;
+                }
+                
+                if (ballX < 0) {
+                    aiScore++;
+                    aiScoreDisplay.textContent = aiScore;
+                    resetBall();
+                } else if (ballX > gameBoard.clientWidth) {
+                    playerScore++;
+                    playerScoreDisplay.textContent = playerScore;
+                    resetBall();
+                }
+            }
+            
+            function shrinkPlayerPaddle() {
+                playerPaddleHeight = Math.max(minPaddleHeight, playerPaddleHeight - shrinkAmount);
+                playerPaddle.style.height = playerPaddleHeight + 'px';
+                
+                if (playerPaddleY + playerPaddleHeight > gameBoard.clientHeight) {
+                    playerPaddleY = gameBoard.clientHeight - playerPaddleHeight;
+                    playerPaddle.style.top = playerPaddleY + 'px';
+                }
+                
+                if (playerPaddleHeight <= 0) {
+                    playerPaddle.style.display = 'none';
+                }
+            }
+            
+            function resetBall() {
+               
+                ballX = gameBoard.clientWidth / 2;
+                ballY = gameBoard.clientHeight / 2;
+                ballSpeedX = (ballSpeedX > 0 ? -1 : 1) * (8 + Math.random() * 3);
+                ballSpeedY = (Math.random() * 8) - 4;
+                
+                
+                if (playerPaddleHeight > 0) {
+                    playerPaddleY = (gameBoard.clientHeight - playerPaddleHeight) / 2;
+                    playerPaddle.style.top = playerPaddleY + 'px';
+                }
+                aiPaddleY = (gameBoard.clientHeight - aiPaddleHeight) / 2;
+                aiPaddle.style.top = aiPaddleY + 'px';
+            }
+            
+            function gameLoop() {
+                handlePlayerMovement();
+                moveAIPaddle();
+                updateBall();
+                animationId = requestAnimationFrame(gameLoop);
+            }
+            
+            
+            resetBall();
+            gameLoop();
+        });
+    </script>
+</body>
+</html>

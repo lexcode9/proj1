@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Water Hop</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #87ceeb;
+    }
+    #gameArea {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      transform-origin: top left;
+    }
+    .platform {
+      position: absolute;
+      width: 150px;
+      height: 20px;
+      background-color: black;
+      bottom: 100px;
+      transition: transform 0.3s ease, background-color 0.3s ease;
+    }
+    .character {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background-color: green;
+      bottom: 120px;
+      z-index: 2;
+    }
+  </style>
+</head>
+<body>
+
+<div id="gameArea"></div>
+
+<script>
+  const gameArea = document.getElementById('gameArea');
+  const platformWidth = 150;
+  const platformSpacing = 50;
+  const characterWidth = 30;
+  const jumpDistance = platformWidth + platformSpacing;
+  let setPattern = [7, 6, 5, 2, 8, 5, 4, 3, 2, 5, 3, 2, 5, 3, 2]; // Default pattern
+
+  let isJumping = false;
+  let currentX = 0;
+  let character;
+  let platforms = [];
+  const redIndex = 59; 
+  const redJumpBackIndex = 55;
+
+  
+  function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+  }
+
+  function generatePlatforms() {
+    shuffleArray(setPattern);
+    gameArea.innerHTML = '';
+    character = document.createElement('div');
+    character.className = 'character';
+    gameArea.appendChild(character);
+
+    platforms = [];
+    let x = 50;
+    let totalPlatforms = 0;
+
+    for (let s = 0; s < setPattern.length && totalPlatforms < 60; s++) {
+      const setSize = setPattern[s];
+      for (let i = 0; i < setSize && totalPlatforms < 60; i++) {
+        const platform = document.createElement('div');
+        platform.className = 'platform';
+        platform.style.left = `${x}px`;
+        gameArea.appendChild(platform);
+        platforms.push(platform);
+        x += platformWidth + platformSpacing;
+        totalPlatforms++;
+      }
+     
+      if (totalPlatforms < 60) {
+        x += platformWidth + platformSpacing;
+      }
+    }
+
+    
+    x += platformWidth + platformSpacing;
+
+    
+    const finalPlatform = document.createElement('div');
+    finalPlatform.className = 'platform';
+    finalPlatform.style.left = `${x}px`;
+    finalPlatform.style.backgroundColor = 'green';
+    gameArea.appendChild(finalPlatform);
+    platforms.push(finalPlatform);
+
+    resetBallToFirstPlatform();
+  }
+
+  function arcJump(leaps) {
+    if (isJumping) return;
+    isJumping = true;
+    const startX = currentX;
+    const startY = parseFloat(character.style.bottom) || 120;
+    const endX = startX + (jumpDistance * leaps);
+    const endY = 120;
+    const jumpHeight = 100;
+    const duration = 500;
+    const frameRate = 1000 / 60;
+    const totalFrames = duration / frameRate;
+    let frame = 0;
+
+    const jumpInterval = setInterval(() => {
+      const t = frame / totalFrames;
+      const x = startX + (endX - startX) * t;
+      const y = startY + (4 * jumpHeight * t * (1 - t));
+      character.style.left = `${x}px`;
+      character.style.bottom = `${y}px`;
+      frame++;
+      if (frame >= totalFrames) {
+        clearInterval(jumpInterval);
+        character.style.left = `${endX}px`;
+        character.style.bottom = `${endY}px`;
+        currentX = endX;
+        isJumping = false;
+        updateGameArea();
+        checkRedPlatform();
+        checkDeadZone();
+      }
+    }, frameRate);
+  }
+
+  function checkRedPlatform() {
+    const centerX = currentX + characterWidth / 2;
+    const redPlatformX = parseFloat(platforms[redIndex].style.left);
+    if (centerX >= redPlatformX && centerX <= redPlatformX + platformWidth) {
+      platforms[redIndex].style.backgroundColor = 'red';
+      arcJumpToPlatform(redJumpBackIndex);
+    }
+  }
+
+  function arcJumpToPlatform(targetIndex) {
+    if (isJumping) return;
+    isJumping = true;
+
+    const startX = currentX;
+    const startY = parseFloat(character.style.bottom) || 120;
+    const endX = parseFloat(platforms[targetIndex].style.left) + (platformWidth / 2) - (characterWidth / 2);
+    const endY = 120;
+    const jumpHeight = 100;
+    const duration = 600;
+    const frameRate = 1000 / 60;
+    const totalFrames = duration / frameRate;
+    let frame = 0;
+
+    const jumpInterval = setInterval(() => {
+      const t = frame / totalFrames;
+      const x = startX + (endX - startX) * t;
+      const y = startY + (4 * jumpHeight * t * (1 - t));
+      character.style.left = `${x}px`;
+      character.style.bottom = `${y}px`;
+      frame++;
+      if (frame >= totalFrames) {
+        clearInterval(jumpInterval);
+        character.style.left = `${endX}px`;
+        character.style.bottom = `${endY}px`;
+        currentX = endX;
+        isJumping = false;
+        updateGameArea();
+      }
+    }, frameRate);
+  }
+
+  function checkDeadZone() {
+    const centerX = currentX + characterWidth / 2;
+    let onPlatform = platforms.some(platform => {
+      const platformX = parseFloat(platform.style.left);
+      return centerX >= platformX && centerX <= platformX + platformWidth;
+    });
+    if (!onPlatform) {
+      location.reload();
+    }
+  }
+
+  function resetBallToFirstPlatform() {
+    currentX = parseFloat(platforms[0].style.left) + (platformWidth / 2) - (characterWidth / 2);
+    character.style.left = `${currentX}px`;
+    character.style.bottom = `120px`;
+  }
+
+  function updateGameArea() {
+    const characterX = parseFloat(character.style.left);
+    const gameAreaWidth = gameArea.offsetWidth;
+    const characterCenter = characterX + characterWidth / 2;
+    const offset = characterCenter - gameAreaWidth / 2;
+    gameArea.style.transform = `translateX(-${offset}px)`;
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') {
+      arcJump(1);
+    } else if (e.code === 'ArrowRight') {
+      arcJump(2);
+    }
+  });
+
+  generatePlatforms();
+</script>
+</body>
+</html>

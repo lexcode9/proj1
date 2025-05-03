@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trapped</title>
+    <style>
+        body {
+            margin: 0;
+            text-align: center;
+            overflow: hidden;
+            background-color: #451D08;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    
+    <canvas id="game"></canvas>
+    
+    <script>
+        const canvas = document.getElementById('game');
+        const can = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        const gravity = 0.275;
+		
+        const keys = {};
+        document.addEventListener('keydown', (e) => keys[e.key] = true);
+        document.addEventListener('keyup', (e) => keys[e.key] = false);
+		
+		let checkpoint = {x: 100, y: 100};
+		let level = 1;
+		
+		let platforms = [];
+        let spikes = [];
+		
+        const player = {
+            x: 100,
+            y: 100,
+            width: 30,
+            height: 30,
+            color: 'red',
+            vx: 0,
+            vy: 0, 
+        };
+		
+		function loadLevel(lv) {
+			
+			platforms = [];
+			spikes = [];
+			
+			if (level === 0) {
+				platforms = [
+					{ x: 0, y: 450, width: 450, height: 400, color: '#C76F21' }
+						
+				];
+				
+			} else if (level === 1) {
+				platforms = [
+					{ x: 0, y: 0, width: 1500, height: 20, color: '#C76F21' },
+					{ x: 600, y: 375, width: 50, height: 10, color: '#C76F21' },
+					{ x: 800, y: 325, width: 50, height: 10, color: '#C76F21' },
+					{ x: 1000, y: 275, width: 50, height: 10, color: '#C76F21' },
+					{ x: 0, y: 450, width: 450, height: 400, color: '#C76F21' },
+					{ x: 1200, y: 150, width: 450, height: 500, color: '#C76F21' }
+				];
+				
+				spikes = [
+					{ x: 815, y: 315, baseWidth: 25, height: 10, color: '#566E5F', visible: false },
+					{ x: 835, y: 315, baseWidth: 25, height: 10, color: '#566E5F', visible: false },
+					{ x: 1265, y: 140, baseWidth: 25, height: 10, color: '#566E5F', visible: false },
+					{ x: 1285, y: 140, baseWidth: 25, height: 10, color: '#566E5F', visible: false },
+					{ x: 1305, y: 140, baseWidth: 25, height: 10, color: '#566E5F', visible: false }
+				];
+			} else if (level === 2) {
+				platforms = [
+					{ x: 0, y: 0, width: 1300, height: 20, color: '#C76F21' },
+					{ x: 0, y: 150, width: 100, height: 500, color: '#C76F21' },
+					{ x: 100, y: 150, width: 1100, height: 10, color: '#C76F21' },
+					{ x: 100, y: 350, width: 1100, height: 10, color: '#C76F21' },
+					{ x: 100, y: 550, width: 1300, height: 200, color: '#C76F21' },
+					{ x: 1300, y: 0, width: 450, height: 460, color: '#C76F21' },
+					{ x: 200, y: 250, width: 1100, height: 10, color: '#C76F21' },
+					{ x: 200, y: 450, width: 1100, height: 10, color: '#C76F21' }
+				];
+				
+				spikes = [
+					{ x: 1187.5, y: 180, baseWidth: 25, height: -20, color: '#566E5F', visible: true },
+					{ x: 987.5, y: 180, baseWidth: 25, height: -20, color: '#566E5F', visible: true },
+					{ x: 787.5, y: 180, baseWidth: 25, height: -20, color: '#566E5F', visible: true },
+					{ x: 587.5, y: 180, baseWidth: 25, height: -20, color: '#566E5F', visible: true },
+					{ x: 387.5, y: 180, baseWidth: 25, height: -20, color: '#566E5F', visible: true },
+					{ x: 187.5, y: 180, baseWidth: 25, height: -20, color: '#566E5F', visible: true },
+					
+					{ x: 1087.5, y: 230, baseWidth: 25, height: 20, color: '#566E5F', visible: true },
+					{ x: 1087.5, y: 230, baseWidth: 25, height: 20, color: '#566E5F', visible: true },
+					{ x: 887.5, y: 230, baseWidth: 25, height: 20, color: '#566E5F', visible: true },
+					{ x: 687.5, y: 230, baseWidth: 25, height: 20, color: '#566E5F', visible: true },
+					{ x: 487.5, y: 230, baseWidth: 25, height: 20, color: '#566E5F', visible: true },
+					{ x: 287.5, y: 230, baseWidth: 25, height: 20, color: '#566E5F', visible: true },
+					
+					{ x: 1112.5, y: 280, baseWidth: 25, height: -20, color: '#566E5F', visible: true },
+					{ x: 962.5, y: 280, baseWidth: 25, height: -20, color: '#566E5F', visible: true },
+					{ x: 812.5, y: 280, baseWidth: 25, height: -20, color: '#566E5F', visible: true },
+					{ x: 662.5, y: 280, baseWidth: 25, height: -20, color: '#566E5F', visible: true },
+					{ x: 512.5, y: 280, baseWidth: 25, height: -20, color: '#566E5F', visible: true },
+					{ x: 362.5, y: 280, baseWidth: 25, height: -20, color: '#566E5F', visible: true },
+					{ x: 212.5, y: 280, baseWidth: 25, height: -20, color: '#566E5F', visible: true },
+					
+					{ x: 1037.5, y: 330, baseWidth: 25, height: 20, color: '#566E5F', visible: true },
+					{ x: 887.5, y: 330, baseWidth: 25, height: 20, color: '#566E5F', visible: true },
+					{ x: 737.5, y: 330, baseWidth: 25, height: 20, color: '#566E5F', visible: true },
+					{ x: 587.5, y: 330, baseWidth: 25, height: 20, color: '#566E5F', visible: true },
+					{ x: 437.5, y: 330, baseWidth: 25, height: 20, color: '#566E5F', visible: true },
+					{ x: 287.5, y: 330, baseWidth: 25, height: 20, color: '#566E5F', visible: true },
+					
+					{ x: 1162.5, y: 430, baseWidth: 25, height: 20, color: '#566E5F', visible: true },
+					{ x: 1152.5, y: 430, baseWidth: 25, height: 20, color: '#566E5F', visible: true },
+					{ x: 1142.5, y: 430, baseWidth: 25, height: 20, color: '#566E5F', visible: true },
+					{ x: 942.5, y: 430, baseWidth: 25, height: 20, color: '#566E5F', visible: true },
+					{ x: 932.5, y: 430, baseWidth: 25, height: 20, color: '#566E5F', visible: true },
+					{ x: 922.5, y: 430, baseWidth: 25, height: 20, color: '#566E5F', visible: true },
+					{ x: 722.5, y: 430, baseWidth: 25, height: 20, color: '#566E5F', visible: true },
+					{ x: 712.5, y: 430, baseWidth: 25, height: 20, color: '#566E5F', visible: true },
+					{ x: 702.5, y: 430, baseWidth: 25, height: 20, color: '#566E5F', visible: true },
+					{ x: 502.5, y: 430, baseWidth: 25, height: 20, color: '#566E5F', visible: true },
+					{ x: 492.5, y: 430, baseWidth: 25, height: 20, color: '#566E5F', visible: true },
+					{ x: 482.5, y: 430, baseWidth: 25, height: 20, color: '#566E5F', visible: true },
+					{ x: 282.5, y: 430, baseWidth: 25, height: 20, color: '#566E5F', visible: true },
+					{ x: 272.5, y: 430, baseWidth: 25, height: 20, color: '#566E5F', visible: true },
+					{ x: 262.5, y: 430, baseWidth: 25, height: 20, color: '#566E5F', visible: true },
+					
+					{ x: 113.5, y: 530, baseWidth: 25, height: 20, color: '#566E5F', visible: false }
+				];
+			} else if (level === 3) {
+				platforms = [
+					{ x: 0, y: 550, width: 250, height: 200, color: '#C76F21' },
+					{ x: 0, y: 0, width: 50, height: 460, color: '#C76F21' },
+					{ x: 0, y: 0, width: 1600, height: 10, color: '#C76F21' },
+					{ x: 250, y: 150, width: 25, height: 600, color: '#C76F21' },
+					{ x: 200, y: 450, width: 50, height: 10, color: '#C76F21' },
+					{ x: 50, y: 250, width: 50, height: 10, color: '#C76F21' },
+					{ x: 275, y: 150, width: 100, height: 10, color: '#C76F21' },
+					{ x: 1300, y: 0, width: 100, height: 50, color: '#C76F21' },
+					
+					{ x: 325, y: 575, width: 50, height: 10, color: '#C76F21' },
+					{ x: 400, y: 200, width: 50, height: 10, color: '#C76F21' },
+					{ x: 275, y: 335, width: 25, height: 10, color: '#C76F21' },
+					{ x: 325, y: 250, width: 50, height: 10, color: '#C76F21' },
+					{ x: 550, y: 125, width: 50, height: 10, color: '#C76F21' }, // with spike
+					{ x: 500, y: 250, width: 50, height: 10, color: '#C76F21' }, // with spike
+					{ x: 700, y: 185, width: 50, height: 10, color: '#C76F21' }, // with spike
+					{ x: 400, y: 400, width: 50, height: 10, color: '#C76F21' }, // with spike
+					{ x: 475, y: 520, width: 50, height: 10, color: '#C76F21' },
+					{ x: 575, y: 420, width: 50, height: 10, color: '#C76F21' },
+					{ x: 675, y: 535, width: 50, height: 10, color: '#C76F21' }, // with spike
+					
+					{ x: 1150, y: 200, width: 50, height: 10, color: '#C76F21' },
+					{ x: 1150, y: 400, width: 50, height: 10, color: '#C76F21' },
+					{ x: 1050, y: 450, width: 50, height: 10, color: '#C76F21' }, //with spike
+					{ x: 700, y: 325, width: 50, height: 10, color: '#C76F21' },
+					{ x: 825, y: 475, width: 50, height: 10, color: '#C76F21' }, 
+					{ x: 1000, y: 300, width: 50, height: 10, color: '#C76F21' }, //with spike
+					{ x: 875, y: 150, width: 50, height: 10, color: '#C76F21' },
+					
+					{ x: 1300, y: 125, width: 100, height: 100, color: '#C76F21' },
+					{ x: 1300, y: 300, width: 100, height: 100, color: '#C76F21' },
+					{ x: 1300, y: 475, width: 100, height: 150, color: '#C76F21' },
+					{ x: 1275, y: 125, width: 25, height: 10, color: '#C76F21' },
+					{ x: 1275, y: 300, width: 25, height: 10, color: '#C76F21' },
+					{ x: 1275, y: 475, width: 25, height: 10, color: '#C76F21' }
+					
+				];
+				
+				spikes = [
+					//x + 25, y - 10
+					{ x: 425, y: 390, baseWidth: 50, height: 10, color: '#566E5F', visible: false },
+					{ x: 725, y: 175, baseWidth: 50, height: 10, color: '#566E5F', visible: false },
+					{ x: 700, y: 525, baseWidth: 50, height: 10, color: '#566E5F', visible: false },
+					{ x: 525, y: 240, baseWidth: 50, height: 10, color: '#566E5F', visible: false },
+					{ x: 575, y: 115, baseWidth: 50, height: 10, color: '#566E5F', visible: false },
+					{ x: 1075, y: 440, baseWidth: 50, height: 10, color: '#566E5F', visible: false },
+					{ x: 1025, y: 290, baseWidth: 50, height: 10, color: '#566E5F', visible: false },
+					
+					{ x: 1350, y: 80, baseWidth: 25, height: -30, color: '#566E5F', visible: false },
+					{ x: 1350, y: 95, baseWidth: 25, height: 30, color: '#566E5F', visible: false },
+					
+					{ x: 1350, y: 255, baseWidth: 25, height: -30, color: '#566E5F', visible: false },
+					{ x: 1350, y: 270, baseWidth: 25, height: 30, color: '#566E5F', visible: false },
+					
+					{ x: 1350, y: 430, baseWidth: 25, height: -30, color: '#566E5F', visible: false },
+					{ x: 1350, y: 445, baseWidth: 25, height: 30, color: '#566E5F', visible: false }
+				];
+				
+				player.x = 1275; 
+				player.y = 400 - player.height;
+			}
+		}
+		
+        function drawPlayer() {
+            can.fillStyle = player.color;
+            can.fillRect(player.x, player.y, player.width, player.height);
+        }
+		
+		function drawPlatform() {
+			for (let i = 0; i < platforms.length; i++) {
+				const p = platforms[i];
+				can.fillStyle = p.color;
+				can.fillRect(p.x, p.y, p.width, p.height);
+			}
+		}
+		
+        function drawSpikes() {
+			for (let i = 0; i < spikes.length; i++) {
+				const s = spikes[i];
+
+				if (s.visible) {
+					can.beginPath();
+					can.moveTo(s.x, s.y);
+					can.lineTo(s.x - s.baseWidth / 2, s.y + s.height);
+					can.lineTo(s.x + s.baseWidth / 2, s.y + s.height);
+					can.closePath();
+
+					can.fillStyle = s.color;
+					can.fill();
+				}
+			}
+		}
+
+        function update() {
+            player.x += player.vx;
+            player.y += player.vy; 
+			player.vy += gravity;
+			
+            let onGround = false;
+            for (let i = 0; i < platforms.length; i++) {
+                const p = platforms[i];
+                
+                if (
+                    player.x + player.width > p.x &&
+                    player.x < p.x + p.width &&
+                    player.y + player.height <= p.y + player.vy &&
+                    player.y + player.height + player.vy >= p.y
+                ) {
+                    player.vy = 0;
+                    player.y = p.y - player.height;
+                    onGround = true;
+					
+					if (level === 1) {
+						for (let j = 0; j < spikes.length; j++) {
+							spikes[j].visible = false;
+						}
+					}
+                }
+				
+                if (player.y + player.height > p.y &&
+                    player.y < p.y + p.height &&
+                    player.x + player.width > p.x &&
+                    player.x < p.x + p.width &&
+                    player.vy < 0) {
+                    player.y = p.y + p.height; 
+                    player.vy = 0; 
+                }
+
+                if (player.x + player.width > p.x && player.x < p.x + p.width &&
+                    player.y + player.height > p.y &&
+                    player.y < p.y + p.height &&
+                    player.vx > 0) {
+                    player.x = p.x - player.width;
+                    player.vx = 0;
+                }
+
+                if (player.x < p.x + p.width && player.x + player.width > p.x &&
+                    player.y + player.height > p.y &&
+                    player.y < p.y + p.height &&
+                    player.vx < 0) {
+                    player.x = p.x + p.width;
+                    player.vx = 0;
+                }
+
+                if (player.y + player.height > p.y &&
+                    player.y < p.y + p.height &&
+                    player.x + player.width > p.x &&
+                    player.x < p.x + p.width &&
+                    player.vy < 0) {
+                    player.y = p.y + p.height;
+                    player.vy = 0;
+                }
+            }
+			
+			for (let i = 0; i < spikes.length; i++) {
+				const s = spikes[i];
+				
+				if (player.x + player.width > s.x - s.baseWidth / 2 &&
+					player.x < s.x + s.baseWidth / 2 &&
+					player.y + player.height > s.y && 
+					player.y < s.y + s.height) {
+					
+					s.visible = true; 
+					died(); 
+					break;
+				} else if (player.x + player.width > s.x - s.baseWidth / 2 &&
+					player.x < s.x + s.baseWidth / 2 &&
+					player.y < Math.max(s.y, s.y + s.height) &&
+					player.y > Math.min(s.y, s.y + s.height)) {
+					
+					died();
+					break;
+				}
+			}
+            
+            if (!onGround) {
+                player.vy += gravity; 
+            }
+			
+            if (player.x < 0) {
+                player.x = 0;
+            } else if (player.x + player.width > canvas.width) {
+                player.x = canvas.width - player.width;
+            }
+
+            player.vx *= 0.9; 
+
+            if (keys['ArrowRight'] || keys['d']) {
+                player.vx += 0.6;
+            }
+            if (keys['ArrowLeft'] || keys['a']) {
+                player.vx -= 0.6;
+            }
+			
+			if (player.x > canvas.width - 50) {
+				if (level === 1) {
+					level++;
+					loadLevel(level);
+					player.x = 100;
+					player.y = 0;
+				} else if (level === 2) {
+					player.x = 100;
+					player.y = 400;
+					level++;
+					loadLevel(level);
+				}
+			}
+        }
+		
+		function died() {
+			if (level === 1 || level === 2) {
+				player.x = checkpoint.x;
+				player.y = checkpoint.y;
+				player.vx = 0;
+				player.vy = 0;
+			} else if (level === 3) {
+				player.x = 100; 
+				player.y = 475; 
+				player.vx = 0;
+				player.vy = 0;
+			}
+		}
+
+        function gameLoop() {
+            requestAnimationFrame(gameLoop);
+            can.clearRect(0, 0, canvas.width, canvas.height);
+            update();
+			drawPlatform();
+            drawPlayer();
+			drawSpikes();
+			
+			if (player.y > canvas.height){
+				died();
+			}
+        }
+
+        window.addEventListener('keydown', function(event) {
+            if (event.key === 'ArrowUp' || event.key === 'w' || event.key === ' ') {
+                if (player.vy === 0) { 
+                    player.vy -= 17; 
+                }
+            }
+			
+        });
+		
+		loadLevel(level);
+        gameLoop();
+    </script>
+
+</body>
+</html>

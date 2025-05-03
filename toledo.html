@@ -1,0 +1,298 @@
+<html>
+<head>
+  <title>Endless Labyrinth</title>
+  <style>
+    body {
+      background-color: #0d1b2a;
+      font-family: 'Verdana', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      overflow: hidden;
+      background-image: linear-gradient(to bottom, #1b2a3d, #0d1b2a);
+    }
+
+    h1 {
+      font-size: 2em;
+      color: #abb6c4;
+      text-shadow: 0 0 10px #4169E1;
+      margin-bottom: 10px;
+    }
+
+    #game {
+      display: grid;
+      grid-template-columns: repeat(30, 2vw);
+      grid-template-rows: repeat(15, 2vw);
+      width: 60vw;
+      height: 30vw;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5), 0 0 30px #FF0000;
+      border: 2px solid #1d2b3a;
+      position: relative;
+    }
+
+    .cell {
+      width: 100%;
+      height: 100%;
+    }
+
+    .wall {
+      background-color: #1d2b3a;
+    }
+
+    .path {
+      background-color: #abb6c4;
+    }
+
+    .player {
+      background-color: #4169E1;
+      box-shadow: 0 0 10px #4169E1;
+    }
+
+    .door {
+      background-color: #00FF00;
+      box-shadow: 0 0 10px #00FF00;
+      animation: flicker 1s infinite;
+    }
+
+    .exit {
+      background-color: #00FF00;
+      box-shadow: 0 0 10px #00FF00;
+      animation: flicker 1s infinite;
+    }
+
+    .chaser {
+      background-color: red;
+      box-shadow: 0 0 10px red;
+    }
+
+    @keyframes flicker {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    .game-over {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 2em;
+      color: #FF0000;
+      text-shadow: 0 0 10px #FF0000;
+      visibility: hidden;
+    }
+  </style>
+</head>
+<body>
+  <h1 id="levelTitle">Maze U - Level 1</h1>
+  <div id="game"></div>
+  <div class="game-over" id="gameOverMessage">Game Over! You were caught!</div>
+
+  <script>
+    const width = 30;
+    const height = 15;
+    const game = document.getElementById('game');
+    const title = document.getElementById('levelTitle');
+    const gameOverMessage = document.getElementById('gameOverMessage');
+    const cells = [];
+    let currentLevel = 1;
+    let playerPos = { x: 1, y: 1 };
+    let chasers = [];
+    let exitPos;
+    let gameOver = false;
+
+    const mazeLevels = [
+      [
+        "##############################",
+        "#............................#",
+        "#.#####.#######.###.#.########",
+        "#.#...#...#.......#.#........#",
+        "#.#.#.###.#.#####.#.########.#",
+        "#...#.....#.....#.#....#.....#",
+        "#####.#.#.###.###.##########.#",
+        "#.....#.#...#...#............#",
+        "#.#####.###.###.#####.#.######",
+        "#...........#.#...#...#......#",
+        "#####.#######.#.#.#####.######",
+        "#.........#.......#..........#",
+        "#.###.#####.#####.###.########",
+        "#...#........................#",
+        "##############################"
+      ],
+      [
+        "##############################",
+        "#............................#",
+        "#.#####.#######.###.#.########",
+        "#.#...#...#.......#.#........#",
+        "#.#.#.###.#.#####.#.########.#",
+        "#...#.....#.....#.#....#.....#",
+        "#####.#.#.###.###.##########.#",
+        "#.....#.#...#...#............#",
+        "#.#####.###.###.#####.#.######",
+        "#.#.........#...#....#.......#",
+        "#####.#######.#.#.#####.######",
+        "#.........#.......#..........#",
+        "#.###.#####.#####.###.########",
+        "#...#........................#",
+        "##############################"
+      ],
+      [
+        "##############################",
+        "#............................#",
+        "#.#####.#######.###.#.########",
+        "#.#...#...#.......#.#........#",
+        "#.#.#.###.#.#####.#.########.#",
+        "#...#.....#.....#.#....#.....#",
+        "#####.#.#.###.###.##########.#",
+        "#.....#.#...#...#............#",
+        "#.#####.###.###.#####.#.######",
+        "#...........#.#...#...#......#",
+        "#####.#######.#.#.#####.######",
+        "#.........#.......#..........#",
+        "#.###.#####.#####.###.########",
+        "#...#........................#",
+        "##############################"
+      ]
+    ];
+
+    function createMaze() {
+      game.innerHTML = '';
+      for (let y = 0; y < height; y++) {
+        cells[y] = [];
+        for (let x = 0; x < width; x++) {
+          const div = document.createElement('div');
+          div.classList.add('cell');
+          if (mazeLevels[currentLevel - 1][y][x] === "#") {
+            div.classList.add('wall');
+          } else {
+            div.classList.add('path');
+          }
+          game.appendChild(div);
+          cells[y][x] = div;
+        }
+      }
+    }
+
+    function updateEntities() {
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          cells[y][x].classList.remove('player', 'door', 'exit', 'chaser');
+        }
+      }
+      cells[playerPos.y][playerPos.x].classList.add('player');
+      for (const ch of chasers) {
+        cells[ch.y][ch.x].classList.add('chaser');
+      }
+      cells[exitPos.y][exitPos.x].classList.add('exit');
+      cells[exitPos.y][exitPos.x].classList.add('door');
+    }
+
+    function getRandomPathPosition() {
+      const positions = [];
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          if (mazeLevels[currentLevel - 1][y][x] === "." && (x !== playerPos.x || y !== playerPos.y)) {
+            positions.push({ x, y });
+          }
+        }
+      }
+      return positions[Math.floor(Math.random() * positions.length)];
+    }
+
+    function isWall(x, y) {
+      return mazeLevels[currentLevel - 1][y][x] === "#";
+    }
+
+    function movePlayer(dx, dy) {
+      const nx = playerPos.x + dx;
+      const ny = playerPos.y + dy;
+      if (!isWall(nx, ny)) {
+        playerPos = { x: nx, y: ny };
+        checkExit();
+        updateEntities();
+      }
+    }
+
+    function checkExit() {
+      if (currentLevel === 3) {
+        const distanceToExit = Math.abs(playerPos.x - exitPos.x) + Math.abs(playerPos.y - exitPos.y);
+        if (distanceToExit === 2) {
+          exitPos = getRandomPathPosition();
+          addChasers();
+          updateEntities();
+        }
+      } else if (playerPos.x === exitPos.x && playerPos.y === exitPos.y) {
+        if (currentLevel < 3) {
+          currentLevel++;
+          title.innerText = `Maze U - Level ${currentLevel}`;
+          startLevel();
+        }
+      }
+    }
+
+    function addChasers() {
+      const newChasers = [
+        { x: 8, y: 3 },
+        { x: 22, y: 3 }
+      ];
+      chasers.push(...newChasers);
+    }
+
+    function moveChasers() {
+      for (let chaser of chasers) {
+        if (gameOver) return;
+        const dx = Math.sign(playerPos.x - chaser.x);
+        const dy = Math.sign(playerPos.y - chaser.y);
+        if (!isWall(chaser.x + dx, chaser.y)) chaser.x += dx;
+        if (!isWall(chaser.x, chaser.y + dy)) chaser.y += dy;
+        if (chaser.x === playerPos.x && chaser.y === playerPos.y) {
+          if (currentLevel === 3) {
+            gameOverMessage.textContent = "You are trapped! You cannot escape!";
+          } else {
+            gameOverMessage.textContent = "Game Over! You were caught!";
+          }
+          gameOverMessage.style.visibility = "visible";
+          gameOver = true;
+          setTimeout(() => restartLevel(), 2000);
+          return;
+        }
+      }
+      updateEntities();
+    }
+
+    function restartLevel() {
+      gameOverMessage.style.visibility = "hidden";
+      gameOver = false;
+      startLevel();
+    }
+
+    function startLevel() {
+      gameOver = false;
+      playerPos = { x: 1, y: 1 };
+      chasers = currentLevel === 2
+        ? [{ x: 8, y: 3 }, { x: 22, y: 3 }]
+        : currentLevel === 3
+        ? [{ x: 8, y: 1 }, { x: 12, y: 3 }, { x: 16, y: 7 }]
+        : [{ x: 8, y: 1 }];
+      exitPos = getRandomPathPosition();
+      createMaze();
+      updateEntities();
+    }
+
+    document.addEventListener("keydown", e => {
+      if (gameOver) return;
+      switch (e.key) {
+        case "ArrowUp": movePlayer(0, -1); break;
+        case "ArrowDown": movePlayer(0, 1); break;
+        case "ArrowLeft": movePlayer(-1, 0); break;
+        case "ArrowRight": movePlayer(1, 0); break;
+      }
+    });
+
+    startLevel();
+    setInterval(moveChasers, 200);
+  </script>
+</body>
+</html>

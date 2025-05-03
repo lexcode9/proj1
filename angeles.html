@@ -1,0 +1,321 @@
+
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Rage Trap Mario - Brutal Mode</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #7ec850;
+      font-family: 'Press Start 2P', cursive;
+    }
+    canvas {
+      display: block;
+      background: #4e87c9;
+    }
+    #menu {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      color: white;
+      font-size: 36px;
+      z-index: 10;
+    }
+    #title {
+      font-size: 48px;
+      margin-bottom: 20px;
+      color: #ffcc00;
+    }
+    #startButton {
+      padding: 20px 40px;
+      background-color: #ffcc00;
+      border: none;
+      font-size: 24px;
+      color: #000;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    #startButton:hover {
+      background-color: #ff9900;
+    }
+    #ui {
+      position: absolute;
+      top: 10px;
+      width: 100%;
+      text-align: center;
+      font-size: 24px;
+      color: white;
+      font-family: Arial, sans-serif;
+      z-index: 10;
+    }
+    #message {
+      position: absolute;
+      top: 50%;
+      width: 100%;
+      text-align: center;
+      font-size: 36px;
+      color: yellow;
+      transform: translateY(-50%);
+      z-index: 20;
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<div id="menu">
+  <div id="title">Rage Trap Mario</div>
+  <button id="startButton" onclick="startGame()">Start Game</button>
+</div>
+<div id="ui"></div>
+<div id="message"></div>
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = 400;
+const player = {
+  x: 100,
+  y: 0,
+  width: 30,
+  height: 30,
+  color: 'red',
+  dx: 0,
+  dy: 0,
+  onGround: false,
+};
+let level = 1;
+let platforms = [];
+let traps = [];
+let checkpoint = {x: 100, y: 0};
+let deaths = 0;
+let startTime = Date.now();
+const keys = {};
+document.addEventListener('keydown', (e) => keys[e.key] = true);
+document.addEventListener('keyup', (e) => keys[e.key] = false);
+const gravity = 0.5;
+const friction = 0.8;
+class Platform {
+  constructor(x, y, w, h, opts = {}) {
+    this.x = x;
+    this.y = y;
+    this.w = w;
+    this.h = h;
+    this.deadly = opts.deadly || false;
+    this.breakable = opts.breakable || false;
+    this.broken = false;
+    this.moving = opts.moving || null;
+  }
+  draw() {
+    if (this.broken) return;
+    ctx.fillStyle = this.deadly ? 'gray' : (this.breakable ? 'brown' : 'black');
+    ctx.fillRect(this.x, this.y, this.w, this.h);
+  }
+  update() {
+    if (this.moving) {
+      const speed = this.moving.speed;
+      const delta = Math.sin(Date.now() / 400) * speed;
+      if (this.moving.dir === 'horizontal') {
+        this.x += delta;
+      } else {
+        this.y += delta;
+      }
+    }
+  }
+}
+class Trap {
+  constructor(x, y, type) {
+    this.x = x;
+    this.y = y;
+    this.type = type;
+    this.active = (type !== 'hiddenSpike');
+  }
+  draw() {
+    if (!this.active && this.type === 'hiddenSpike') return;
+    if (this.type === 'spike' || this.type === 'hiddenSpike') {
+      ctx.fillStyle = 'silver';
+      ctx.beginPath();
+      ctx.moveTo(this.x, this.y + 30);
+      ctx.lineTo(this.x + 15, this.y);
+      ctx.lineTo(this.x + 30, this.y + 30);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      ctx.fillStyle = 'darkred';
+      ctx.fillRect(this.x, this.y, 30, 30);
+    }
+  }
+}
+function loadLevel(lv) {
+  platforms = [];
+  traps = [];
+  player.dx = 0;
+  player.dy = 0;
+  if (lv === 1) {
+    platforms.push(new Platform(0, canvas.height - 50, canvas.width, 50));
+    platforms.push(new Platform(200, canvas.height - 150, 100, 20));
+    platforms.push(new Platform(450, canvas.height - 150, 100, 20));
+    platforms.push(new Platform(600, canvas.height - 250, 100, 20, {moving: {dir: 'horizontal', speed: 2}}));
+    platforms.push(new Platform(800, canvas.height - 300, 100, 20));
+    traps.push(new Trap(250, canvas.height - 180, 'hiddenSpike'));
+    traps.push(new Trap(400, canvas.height - 80, 'spike'));
+    traps.push(new Trap(550, canvas.height - 230, 'spike'));
+    traps.push(new Trap(950, canvas.height - 330, 'spike'));
+  }
+  if (lv === 2) {
+    platforms.push(new Platform(0, canvas.height - 50, canvas.width, 50));
+    platforms.push(new Platform(0, 0, 50, canvas.height));
+    platforms.push(new Platform(canvas.width - 50, 800, 50, canvas.height));
+    platforms.push(new Platform(100, 300, 80, 20));
+    platforms.push(new Platform(250, 260, 60, 20));
+    platforms.push(new Platform(350, 220, 60, 20));
+    platforms.push(new Platform(450, 260, 60, 20));
+    platforms.push(new Platform(550, 300, 60, 20));
+    platforms.push(new Platform(650, 250, 80, 20, {moving: {dir: 'horizontal', speed: 3}}));
+    platforms.push(new Platform(850, 250, 80, 20, {moving: {dir: 'horizontal', speed: 3}}));
+    platforms.push(new Platform(1050, 250, 80, 20, {moving: {dir: 'horizontal', speed: 3}}));
+    platforms.push(new Platform(1250, 250, 80, 20, {moving: {dir: 'horizontal', speed: 3}}));
+    platforms.push(new Platform(1450, 250, 100, 20, {moving: {dir: 'horizontal', speed: 3}}));
+    platforms.push(new Platform(1700, 200, 90, 20));
+    platforms.push(new Platform(canvas.width + 20, 120, 80, 20));
+    traps.push(new Trap(canvas.width - 100, canvas.height - 100, 'fakeDoor'));
+    traps.push(new Trap(300, 420, 'hiddenSpike'));
+    traps.push(new Trap(500, 420, 'hiddenSpike'));
+    for (let i = 100; i < canvas.width - 100; i += 40) {
+      traps.push(new Trap(i, canvas.height - 80, 'spike'));
+    }
+    traps.push(new Trap(400, 100, 'spike'));
+    platforms.push(new Platform(canvas.width - 150, 200, 60, 20));
+    traps.push(new Trap(canvas.width - 140, 230, 'hiddenSpike'));
+  }
+  if (lv === 3) {
+    platforms.push(new Platform(0, canvas.height - 50, canvas.width, 50));
+    platforms.push(new Platform(0, 0, 50, canvas.height));
+    platforms.push(new Platform(canvas.width - 50, 0, 50, canvas.height));
+    platforms.push(new Platform(60, 300, 100, 20));
+    platforms.push(new Platform(200, 260, 100, 20));
+    traps.push(new Trap(150, 280, 'hiddenSpike'));
+    platforms.push(new Platform(320, 230, 40, 20));
+    platforms.push(new Platform(390, 200, 40, 20));
+    platforms.push(new Platform(460, 170, 80, 20));
+    traps.push(new Trap(325, 210, 'hiddenSpike'));
+    traps.push(new Trap(465, 150, 'hiddenSpike'));
+    traps.push(new Trap(565, 150, 'hiddenSpike'));
+    traps.push(new Trap(665, 150, 'hiddenSpike'));
+    traps.push(new Trap(765, 150, 'hiddenSpike'));
+	  traps.push(new Trap(805, 150, 'hiddenSpike'));
+    traps.push(new Trap(865, 150, 'hiddenSpike'));
+	  traps.push(new Trap(905, 150, 'hiddenSpike'));
+    traps.push(new Trap(965, 150, 'hiddenSpike'));
+	  traps.push(new Trap(1000, 150, 'hiddenSpike'));
+    traps.push(new Trap(1065, 150, 'hiddenSpike'));
+    platforms.push(new Platform(540, 140, 100, 20, {moving: {dir: 'horizontal', speed: 2}}));
+    traps.push(new Trap(580, 120, 'spike'));
+    traps.push(new Trap(660, 160, 'hiddenSpike'));
+    platforms.push(new Platform(720, 120, 80, 20, {breakable: true}));
+    platforms.push(new Platform(820, 100, 60, 20));
+	  traps.push(new Trap(720, 80, 'hiddenSpike'));
+    traps.push(new Trap(830, 70, 'hiddenSpike'));
+	traps.push(new Trap(1030, 70,'hiddenSpike'));
+	traps.push(new Trap(1230, 70, 'hiddenSpike'));
+    platforms.push(new Platform(canvas.width - 200, 60, 60, 20));
+    traps.push(new Trap(canvas.width - 140, 30, 'fakeDoor'));
+    traps.push(new Trap(canvas.width - 190, 90, 'hiddenSpike'));
+  }
+  checkpoint = {x: 100, y: 0};
+}
+function checkCollision(a, b) {
+  return a.x < b.x + b.w &&
+         a.x + a.width > b.x &&
+         a.y < b.y + b.h &&
+         a.y + a.height > b.y;
+}
+function update() {
+  if (keys['ArrowRight']) player.dx = 5;
+  else if (keys['ArrowLeft']) player.dx = -5;
+  else player.dx *= friction;
+  if (keys[' '] && player.onGround) {
+    player.dy = -12;
+    player.onGround = false;
+  }
+  player.dy += gravity;
+  player.x += player.dx;
+  player.y += player.dy;
+  player.onGround = false;
+  for (const plat of platforms) {
+    plat.update();
+    if (plat.broken) continue;
+    if (player.dy >= 0 && checkCollision(player, {x: plat.x, y: plat.y, w: plat.w, h: plat.h})) {
+      player.y = plat.y - player.height;
+      player.dy = 0;
+      player.onGround = true;
+      if (plat.breakable) {
+        setTimeout(() => { plat.broken = true; }, 500);
+      }
+    }
+  }
+  for (const trap of traps) {
+    if (checkCollision(player, {x: trap.x, y: trap.y, w: 30, h: 30})) {
+      if (trap.type === 'fakeDoor') death('You got TROLLED!! 😂');
+      else death();
+    }
+    if (trap.type === 'hiddenSpike') {
+      if (player.x > trap.x - 20 && player.x < trap.x + 50) {
+        trap.active = true;
+      }
+    }
+  }
+  if (player.y > canvas.height) death();
+  if (player.x > canvas.width - 50) {
+    if (level < 3) {
+      level++;
+      loadLevel(level);
+    } else {
+      document.getElementById('message').innerText = 'Level 3 = GoodLuck! 😈';
+    }
+    player.x = 100;
+    player.y = 0;
+  }
+  updateUI();
+}
+function death(msg = '') {
+  player.x = checkpoint.x;
+  player.y = checkpoint.y;
+  player.dx = 0;
+  player.dy = 0;
+  deaths++;
+  if (msg) {
+    document.getElementById('message').innerText = msg;
+    setTimeout(() => {
+      document.getElementById('message').innerText = '';
+    }, 2000);
+  }
+  loadLevel(level);
+}
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  platforms.forEach(p => p.draw());
+  traps.forEach(t => t.draw());
+  ctx.fillStyle = player.color;
+  ctx.fillRect(player.x, player.y, player.width, player.height);
+}
+function updateUI() {
+  const elapsed = Math.floor((Date.now() - startTime) / 1000);
+  document.getElementById('ui').innerText = `Level: ${level} | Deaths: ${deaths} | Time: ${elapsed}s`;
+}
+function startGame() {
+  document.getElementById('menu').style.display = 'none';
+  loadLevel(level);
+  gameLoop();
+}
+function gameLoop() {
+  update();
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+</script>
+</body>
+</html>
