@@ -1,0 +1,254 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Endless Balloon Shooter (Unpoppable Twist!)</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: skyblue;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            user-select: none;
+        }
+        #gameCanvas {
+            display: block;
+            margin: 0 auto;
+            background: lightblue;
+            cursor: crosshair;
+        }
+        #scoreDisplay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 24px;
+            color: black;
+        }
+        #timerDisplay {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 24px;
+            color: black;
+        }
+        #levelDisplay {
+            position: absolute;
+            top: 50px;
+            left: 10px;
+            font-size: 18px;
+            color: black;
+        }
+        #message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 32px;
+            color: red;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div id="scoreDisplay">Score: 0</div>
+    <div id="timerDisplay">Time: 30</div>
+    <div id="levelDisplay">Level: 1</div>
+    <div id="message"></div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const timerDisplay = document.getElementById('timerDisplay');
+        const levelDisplay = document.getElementById('levelDisplay');
+        const message = document.getElementById('message');
+
+        let score = 0;
+        let timeLeft = 30;
+        let level = 1;
+        let balloons = [];
+        let gameInterval;
+        let timerInterval;
+        let giantBalloonActive = false;
+        let gameRunning = true;
+
+        // Balloon class
+        class Balloon {
+            constructor(x, y, size, speed, color, health = 1) {
+                this.x = x;
+                this.y = y;
+                this.size = size;
+                this.speed = speed;
+                this.color = color;
+                this.health = health;
+                this.maxHealth = health;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.stroke();
+
+                // Draw health if more than 1
+                if (this.health > 1) {
+                    ctx.fillStyle = 'black';
+                    ctx.font = '16px Arial';
+                    ctx.fillText(this.health, this.x - 5, this.y + 5);
+                }
+            }
+
+            update() {
+                this.y -= this.speed;
+                if (this.y < -this.size) {
+                    this.y = canvas.height + this.size;
+                    this.x = Math.random() * canvas.width;
+                }
+            }
+
+            isClicked(x, y) {
+                const distance = Math.sqrt((x - this.x) ** 2 + (y - this.y) ** 2);
+                return distance <= this.size;
+            }
+        }
+
+        // Create balloons based on level
+        function createBalloons() {
+            balloons = [];
+            let balloonCount, balloonSpeed, balloonSize;
+
+            if (level % 4 === 1) {
+                balloonCount = 5 + Math.floor(level/4)*2;
+                balloonSpeed = 1 + level*0.1;
+                balloonSize = 30;
+            } else if (level % 4 === 2) {
+                balloonCount = 10 + Math.floor(level/4)*3;
+                balloonSpeed = 1.5 + level*0.1;
+                balloonSize = 25;
+            } else if (level % 4 === 3) {
+                balloonCount = 15 + Math.floor(level/4)*4;
+                balloonSpeed = 2 + level*0.1;
+                balloonSize = 20;
+            } else if (level % 4 === 0) {
+                // Giant Unpoppable Balloon level
+                giantBalloonActive = true;
+                balloons.push(new Balloon(
+                    canvas.width / 2,
+                    canvas.height / 2,
+                    150,
+                    0,
+                    'red',
+                    999999999 // Impossible to pop
+                ));
+                return;
+            }
+
+            for (let i = 0; i < balloonCount; i++) {
+                const x = Math.random() * canvas.width;
+                const y = canvas.height + Math.random() * 100;
+                const colors = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                
+                // Some balloons require multiple hits
+                let health = 1;
+                if (Math.random() > 0.7) health = 2;
+                if (level > 3 && Math.random() > 0.5) health = 3;
+
+                balloons.push(new Balloon(x, y, balloonSize, balloonSpeed, color, health));
+            }
+        }
+
+        // Game loop
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            balloons.forEach((balloon, index) => {
+                balloon.draw();
+                balloon.update();
+            });
+
+            if (giantBalloonActive && level % 4 === 0) {
+                // Display taunting message
+                if (timeLeft <= 0) {
+                    message.textContent = `Haha! Level ${level} complete! Did you really think you could pop me? I'm UNPOPPABLE!`;
+                    message.style.display = "block";
+                    setTimeout(() => {
+                        message.style.display = "none";
+                        nextLevel();
+                    }, 3000);
+                }
+            }
+        }
+
+        function nextLevel() {
+            level++;
+            levelDisplay.textContent = `Level: ${level}`;
+            timeLeft = 30;
+            giantBalloonActive = false;
+            createBalloons();
+        }
+
+        // Start the game
+        function startGame() {
+            score = 0;
+            timeLeft = 30;
+            level = 1;
+            giantBalloonActive = false;
+            gameRunning = true;
+            message.style.display = "none";
+            scoreDisplay.textContent = `Score: ${score}`;
+            levelDisplay.textContent = `Level: ${level}`;
+            createBalloons();
+
+            // Timer countdown
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerDisplay.textContent = `Time: ${timeLeft}`;
+
+                if (timeLeft <= 0) {
+                    nextLevel();
+                }
+            }, 1000);
+
+            if (gameInterval) clearInterval(gameInterval);
+            gameInterval = setInterval(gameLoop, 20);
+        }
+
+        // Handle clicks
+        canvas.addEventListener('click', (e) => {
+            if (!gameRunning) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            balloons.forEach((balloon, index) => {
+                if (balloon.isClicked(mouseX, mouseY)) {
+                    balloon.health--;
+
+                    if (balloon.health <= 0) {
+                        balloons.splice(index, 1);
+                        score += 10;
+                        scoreDisplay.textContent = `Score: ${score}`;
+                        
+                        // If all balloons are popped, go to next level
+                        if (balloons.length === 0 && !giantBalloonActive) {
+                            nextLevel();
+                        }
+                    }
+                }
+            });
+        });
+
+        // Start the game initially
+        startGame();
+    </script>
+</body>
+</html>

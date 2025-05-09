@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mini Icy Tower</title>
+  <style>
+    body {
+      margin: 0;
+      overflow-x: hidden;
+      background: #111;
+      font-family: sans-serif;
+      color: #fff;
+      text-align: center;
+    }
+    #game {
+      position: relative;
+      width: 320px;
+      height: 480px;
+      margin: 20px auto;
+      background: #222;
+      overflow: hidden;
+      border: 2px solid #555;
+    }
+    .player {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      background: #0f0;
+      border-radius: 50%;
+    }
+    .platform {
+      position: absolute;
+      width: 60px;
+      height: 8px;
+      background: #555;
+    }
+    .trap-platform {
+      background: crimson;
+      width: 300px !important;
+      height: 10px;
+    }
+    #score {
+      margin-top: 10px;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Mini Icy Tower</h1>
+<div id="score">Score: 0</div>
+<div id="game">
+  <div class="player" id="player"></div>
+</div>
+
+<script>
+  const game = document.getElementById('game');
+  const player = document.getElementById('player');
+  const scoreDisplay = document.getElementById('score');
+
+  let x = 148;
+  let y = 446;
+  let vx = 0;
+  let vy = 0;
+  const gravity = 0.35;
+  const jumpPower = -9;
+  const moveSpeed = 3.5;
+  const platforms = [];
+  const platformCount = 10;
+
+  let maxHeight = 0;
+  let score = 0;
+  let trapActivated = false;
+  let trapSpawned = false;
+  let trapPlatform = null;
+  let dragging = false;
+
+  function createPlatform(xPos, yPos, isTrap = false) {
+    const plat = document.createElement('div');
+    plat.classList.add('platform');
+    if (isTrap) plat.classList.add('trap-platform');
+    plat.style.left = xPos + 'px';
+    plat.style.top = yPos + 'px';
+    game.appendChild(plat);
+    platforms.push(plat);
+    return plat;
+  }
+
+  // Initial platforms
+  for (let i = 0; i < platformCount; i++) {
+    createPlatform(Math.random() * 260, 480 - i * 50);
+  }
+  createPlatform(130, 470); // Ground platform
+
+  function gameLoop() {
+    if (!dragging) vy += gravity;
+
+    x += vx;
+    y += vy;
+
+    if (x < 0) x = 0;
+    if (x + 24 > 320) x = 296;
+
+    if (!dragging) {
+      for (let plat of platforms) {
+        const px = parseInt(plat.style.left);
+        const py = parseInt(plat.style.top);
+        const pw = plat.classList.contains('trap-platform') ? 300 : 60;
+
+        if (
+          x + 24 > px &&
+          x < px + pw &&
+          y + 24 > py &&
+          y + 24 < py + 8 + vy &&
+          vy > 0
+        ) {
+          vy = jumpPower;
+        }
+      }
+    }
+
+    if (y < 240 && !dragging) {
+      const diff = 240 - y;
+      for (let plat of platforms) {
+        plat.style.top = (parseInt(plat.style.top) + diff) + 'px';
+      }
+      maxHeight += diff;
+      y = 240;
+    }
+
+    score = Math.floor(maxHeight / 80);
+    scoreDisplay.textContent = "Score: " + score;
+
+    // Spawn the trap platform exactly at score 40
+    if (score >= 40 && !trapSpawned) {
+      trapPlatform = createPlatform(10, 200, true);
+      trapSpawned = true;
+    }
+
+    // Move trap platform down slowly
+    if (trapPlatform && trapSpawned) {
+      trapPlatform.style.top = (parseInt(trapPlatform.style.top) + 0.7) + 'px';
+
+      const trapTop = parseInt(trapPlatform.style.top);
+      const px = parseInt(trapPlatform.style.left);
+
+      // If player touches the trap, trigger dragging
+      if (
+        y + 24 >= trapTop &&
+        y + 24 <= trapTop + 20 &&
+        x + 24 > px &&
+        x < px + 300
+      ) {
+        dragging = true;
+        vy = 2; // Downward pull
+      }
+    }
+
+    // Restart game after falling with trap
+    if (y > 480 && dragging) {
+      setTimeout(() => {
+        location.reload();
+      }, 800);
+    }
+
+    // Remove and add new platforms
+    for (let i = platforms.length - 1; i >= 0; i--) {
+      const plat = platforms[i];
+      if (parseInt(plat.style.top) > 480) {
+        plat.remove();
+        platforms.splice(i, 1);
+        createPlatform(Math.random() * 260, -20); // Always spawn a new platform slightly above the screen
+      }
+    }
+
+    player.style.left = x + 'px';
+    player.style.top = y + 'px';
+
+    requestAnimationFrame(gameLoop);
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'ArrowLeft') {
+      vx = -moveSpeed;
+    } else if (e.code === 'ArrowRight') {
+      vx = moveSpeed;
+    }
+  });
+
+  document.addEventListener('keyup', (e) => {
+    if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
+      vx = 0;
+    }
+  });
+
+  requestAnimationFrame(gameLoop);
+</script>
+
+</body>
+</html>

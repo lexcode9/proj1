@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Whack-a-Bomb (Auto Start Edition)</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      background: #222;
+      color: #fff;
+      margin: 0;
+      padding: 20px;
+    }
+
+    #gameArea {
+      position: relative;
+      width: 600px;
+      height: 400px;
+      margin: 30px auto;
+      background: #333;
+      overflow: hidden;
+      border: 3px solid #555;
+    }
+
+    .bomb {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      background: red;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    #score {
+      font-size: 24px;
+    }
+
+    #timer {
+      font-size: 28px;
+      color: #f90;
+      display: none;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1> Whack-a-Bomb: Moving Bombs Edition!</h1>
+  <div id="score">Score: 0</div>
+  <div id="timer">Time left: 5</div>
+  <div id="gameArea"></div>
+
+  <script>
+    let score = 0;
+    let gameArea = document.getElementById('gameArea');
+    let scoreDisplay = document.getElementById('score');
+    let timerDisplay = document.getElementById('timer');
+    let bomb = null;
+    let gameInterval = null;
+    let countdown = null;
+    let moveInterval = null;
+    let timeLeft = 5;
+
+    function startGame() {
+      score = 0;
+      updateScore();
+      clearGameArea();
+      if (gameInterval) clearInterval(gameInterval);
+      if (countdown) clearInterval(countdown);
+      if (moveInterval) clearInterval(moveInterval);
+      timerDisplay.style.display = 'none';
+      spawnBomb();
+      gameInterval = setInterval(spawnBomb, 1000);
+    }
+
+    function spawnBomb() {
+      if (bomb) bomb.remove();
+
+      bomb = document.createElement('div');
+      bomb.classList.add('bomb');
+
+      let maxX = gameArea.clientWidth - 50;
+      let maxY = gameArea.clientHeight - 50;
+
+      let x = Math.floor(Math.random() * maxX);
+      let y = Math.floor(Math.random() * maxY);
+
+      bomb.style.left = `${x}px`;
+      bomb.style.top = `${y}px`;
+
+      bomb.onclick = () => {
+        score++;
+        updateScore();
+        bomb.remove();
+
+        if (score === 5) {
+          triggerChallenge();
+        }
+      };
+
+      gameArea.appendChild(bomb);
+    }
+
+    function updateScore() {
+      scoreDisplay.textContent = `Score: ${score}`;
+    }
+
+    function triggerChallenge() {
+      clearInterval(gameInterval);
+      clearGameArea();
+
+      timeLeft = 10;
+      timerDisplay.textContent = `Time left: ${timeLeft}`;
+      timerDisplay.style.display = 'block';
+
+      spawnMultipleMovingBombs(10);
+
+      countdown = setInterval(() => {
+        timeLeft--;
+        timerDisplay.textContent = `Time left: ${timeLeft}`;
+        if (timeLeft <= 0) {
+          clearInterval(countdown);
+          clearInterval(moveInterval);
+          endGame();
+        }
+      }, 600);
+    }
+
+    function spawnMultipleMovingBombs(count) {
+      for (let i = 0; i < count; i++) {
+        let newBomb = document.createElement('div');
+        newBomb.classList.add('bomb');
+
+        positionBombRandomly(newBomb);
+
+        newBomb.onclick = () => {
+          newBomb.remove();
+        };
+
+        gameArea.appendChild(newBomb);
+      }
+
+      moveInterval = setInterval(() => {
+        let bombs = document.querySelectorAll('.bomb');
+        bombs.forEach(b => {
+          positionBombRandomly(b);
+        });
+      }, 500);
+    }
+
+    function positionBombRandomly(bombElement) {
+      let maxX = gameArea.clientWidth - 50;
+      let maxY = gameArea.clientHeight - 50;
+
+      let x = Math.floor(Math.random() * maxX);
+      let y = Math.floor(Math.random() * maxY);
+
+      bombElement.style.left = `${x}px`;
+      bombElement.style.top = `${y}px`;
+    }
+
+    function clearGameArea() {
+      gameArea.innerHTML = '';
+    }
+
+    function endGame() {
+      clearGameArea();
+      timerDisplay.style.display = 'none';
+      location.reload(); // auto-reload page
+    }
+
+    // auto-start game when page loads
+    window.onload = startGame;
+  </script>
+
+</body>
+</html>

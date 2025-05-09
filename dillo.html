@@ -1,0 +1,154 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Fruit Ninja Bomb Party</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: sans-serif;
+      background: #222;
+      color: white;
+    }
+    canvas {
+      display: block;
+      background: #111;
+    }
+    #score {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 24px;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="score">Score: 0</div>
+  <canvas id="game"></canvas>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const scoreEl = document.getElementById("score");
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let fruits = [];
+    let score = 0;
+    let gameOver = false;
+    let spawnInterval, gameLoop;
+    let fakeFruitSpawned = false;
+
+    class Fruit {
+      constructor(x, y, type, isFake = false) {
+        this.x = x;
+        this.y = y;
+        this.type = type;
+        this.isFake = isFake;
+        this.vx = (Math.random() - 0.5) * 8;
+        this.vy = -Math.random() * 15 - 10;
+        this.gravity = 0.5;
+        this.radius = (type === 'fruit') ? 20 : (score >= 3 ? canvas.width / 2 : 30);
+        this.color = isFake ? getRandomColor() : (type === 'fruit' ? getRandomColor() : 'red');
+        if (score >= 5) {
+          this.vx *= 2;
+          this.vy *= 2;
+        }
+      }
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += this.gravity;
+      }
+      draw() {
+        ctx.beginPath();
+        ctx.fillStyle = this.color;
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      isHit(x, y) {
+        return Math.hypot(this.x - x, this.y - y) < this.radius;
+      }
+    }
+
+    function getRandomColor() {
+      const colors = ['lime', 'yellow', 'orange', 'purple', 'cyan'];
+      return colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    function spawnFruit() {
+      const x = Math.random() * canvas.width;
+      const type = Math.random() < 0.5 ? 'bomb' : 'fruit';
+      if (score >= 5 && !fakeFruitSpawned) {
+        fruits.push(new Fruit(x, canvas.height + 60, 'fruit', true));
+        fakeFruitSpawned = true;
+      } else {
+        fruits.push(new Fruit(x, canvas.height + 60, type));
+      }
+    }
+
+    function updateGame() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      fruits.forEach(fruit => {
+        fruit.update();
+        fruit.draw();
+      });
+      fruits = fruits.filter(f => f.y < canvas.height + 60);
+      if (!gameOver) {
+        gameLoop = requestAnimationFrame(updateGame);
+      }
+    }
+
+    function slice(x, y) {
+      if (gameOver) return;
+      for (let i = 0; i < fruits.length; i++) {
+        if (fruits[i].isHit(x, y)) {
+          if (fruits[i].type === 'bomb' || fruits[i].isFake) {
+            endGame();
+            return;
+          } else {
+            score++;
+            scoreEl.textContent = 'Score: ' + score;
+            fruits.splice(i, 1);
+            break;
+          }
+        }
+      }
+    }
+
+    function endGame() {
+      gameOver = true;
+      cancelAnimationFrame(gameLoop);
+      clearInterval(spawnInterval);
+      // Auto restart after 2 seconds
+      setTimeout(() => {
+        resetGame();
+      }, 2000);
+    }
+
+    function resetGame() {
+      fruits = [];
+      score = 0;
+      fakeFruitSpawned = false;
+      gameOver = false;
+      scoreEl.textContent = 'Score: 0';
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      spawnInterval = setInterval(spawnFruit, 700);
+      updateGame();
+    }
+
+    canvas.addEventListener('mousemove', e => slice(e.clientX, e.clientY));
+    canvas.addEventListener('touchmove', e => {
+      const touch = e.touches[0];
+      slice(touch.clientX, touch.clientY);
+    });
+
+    resetGame();
+  </script>
+</body>
+</html>
